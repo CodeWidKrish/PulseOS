@@ -16,7 +16,8 @@ PulseOS is an AI health companion that turns medical lab reports, vitals, and he
 | **Run** | `npm run dev` | `uvicorn app.main:app --reload --port 8000` |
 | **Lint** | `npm run lint` | `ruff check .` |
 | **Type-check** | `npx tsc --noEmit` | `mypy app` |
-| **Test** | `TODO: npm test (Playwright/Vitest pending)` | `pytest` |
+| **Test** | `npm run build` (Next.js build verification) | `pytest` |
+| **Seed** | — | `python -m app.core.seed` |
 
 ## 4. Coding Conventions
 - **TypeScript**: Strict mode enabled; explicit interface/type definitions; no `any`; functional React components.
@@ -40,5 +41,5 @@ PulseOS is an AI health companion that turns medical lab reports, vitals, and he
   3. AI safety boundaries or medical disclaimer policies are uncertain.
 
 ## 6. Open Questions
-1. Where should the visual prototype `reference/pulseos-final.html` be copied from, or will it be provided as the design baseline?
-2. Which specific mailer backend (console logging vs. Mailgun/SendGrid/SMTP) will be standard for production deployment?
+1. `reference/pulseos-final.html` is checked in and acts as the visual prototype baseline.
+2. Production mailer backend default is console logging in development, with Resend/SMTP configured via `MAIL_BACKEND`.

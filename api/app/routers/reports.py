@@ -1,5 +1,4 @@
 import json
-import os
 import uuid
 from pathlib import Path
 
@@ -124,7 +123,7 @@ async def explain_report(
     lab_values = parse_lab_values(report.extracted_text or "")
 
     # Save parsed values
-    if lab_values and not report.status == ReportStatus.done:
+    if lab_values and report.status != ReportStatus.done:
         for lv in lab_values:
             db.add(ReportValue(
                 report_id=report.id,

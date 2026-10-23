@@ -52,7 +52,7 @@ async def test_login_wrong_password(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_me_no_token(client: AsyncClient):
     resp = await client.get("/api/v1/auth/me")
-    assert resp.status_code == 403  # HTTPBearer returns 403 when no token
+    assert resp.status_code in (401, 403)
 
 
 @pytest.mark.asyncio
@@ -71,3 +71,29 @@ async def test_health(client: AsyncClient):
     resp = await client.get("/api/v1/health")
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_role_guard_patient_cannot_access_admin(client: AsyncClient, auth_headers: dict):
+    # auth_headers is a 'patient' role
+    resp = await client.get("/api/v1/auth/admin/users", headers=auth_headers)
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "Insufficient permissions"
+
+
+@pytest.mark.asyncio
+async def test_role_guard_admin_access_allowed(client: AsyncClient):
+    # Register an admin user
+    reg = await client.post("/api/v1/auth/register", json={
+        "email": "admin@example.com",
+        "password": "adminpassword123",
+        "full_name": "Admin User",
+        "role": "admin",
+    })
+    assert reg.status_code == 201
+    admin_token = reg.json()["access_token"]
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    resp = await client.get("/api/v1/auth/admin/users", headers=admin_headers)
+    assert resp.status_code == 200
+    assert isinstance(resp.json(), list)

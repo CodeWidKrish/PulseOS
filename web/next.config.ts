@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["recharts", "framer-motion"],
   },
+  turbopack: {},
   // Suppress Three.js / R3F build warnings
   webpack: (config) => {
     config.externals = config.externals || [];

@@ -1,9 +1,8 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user, get_db
 from app.models.appointment import AvailabilitySlot, Doctor
@@ -32,7 +31,7 @@ async def get_available_slots(
         select(AvailabilitySlot)
         .where(
             AvailabilitySlot.doctor_id == doctor_id,
-            AvailabilitySlot.is_booked == False,
+            AvailabilitySlot.is_booked.is_(False),
         )
         .order_by(AvailabilitySlot.starts_at)
     )

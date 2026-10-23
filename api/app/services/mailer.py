@@ -38,8 +38,9 @@ PulseOS Team
 
 
 async def _send_smtp(to: str, subject: str, body: str) -> None:
-    import aiosmtplib
     from email.mime.text import MIMEText
+
+    import aiosmtplib
 
     message = MIMEText(body)
     message["From"] = settings.mail_from
