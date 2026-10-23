@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import AsyncSessionLocal
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_current_user, get_db, require_role
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -36,6 +35,7 @@ async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
         email=body.email,
         password_hash=hash_password(body.password),
         full_name=body.full_name,
+        role=body.role,
     )
     db.add(user)
     await db.commit()
@@ -60,9 +60,16 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
             raise JWTError("Not a refresh token")
         user_id = payload.get("sub")
     except JWTError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token") from None
 
-    result = await db.execute(select(User).where(User.id == user_id))
+    from uuid import UUID
+
+    try:
+        user_uuid = UUID(user_id) if isinstance(user_id, str) else user_id
+    except ValueError:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid user ID in token") from None
+
+    result = await db.execute(select(User).where(User.id == user_uuid))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
@@ -72,3 +79,12 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/admin/users", response_model=list[UserResponse])
+async def list_users_admin(
+    _: User = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User))
+    return result.scalars().all()

@@ -10,8 +10,8 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.core.config import settings
-from app.core.database import engine, Base
-from app.routers import auth, reports, vitals, doctors, appointments
+from app.core.database import Base, engine
+from app.routers import appointments, auth, doctors, reports, vitals
 
 
 @asynccontextmanager
@@ -38,7 +38,7 @@ app = FastAPI(
 
 # Rate limiting
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # CORS
 app.add_middleware(

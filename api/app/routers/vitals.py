@@ -1,7 +1,6 @@
-import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,7 +24,7 @@ async def log_vital(
         type=body.type,
         value_1=body.value_1,
         value_2=body.value_2,
-        recorded_at=body.recorded_at or datetime.now(timezone.utc),
+        recorded_at=body.recorded_at or datetime.now(UTC),
     )
     db.add(vital)
     await db.commit()
@@ -41,7 +40,7 @@ async def list_vitals(
     current_user: User = Depends(get_current_user),
 ):
     days = 7 if range == "7d" else 30
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     query = (
         select(Vital)
@@ -61,13 +60,13 @@ async def vitals_summary(
     current_user: User = Depends(get_current_user),
 ):
     """Returns summary (avg, latest, trend, health score) per vital type."""
-    since = datetime.now(timezone.utc) - timedelta(days=30)
+    since = datetime.now(UTC) - timedelta(days=30)
     result = await db.execute(
         select(Vital)
         .where(Vital.user_id == current_user.id, Vital.recorded_at >= since)
         .order_by(Vital.recorded_at.asc())
     )
-    all_vitals = result.scalars().all()
+    all_vitals = list(result.scalars().all())
     health_score = compute_health_score(all_vitals)
 
     summaries = []

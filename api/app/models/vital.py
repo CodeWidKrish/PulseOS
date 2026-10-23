@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
+if TYPE_CHECKING:
+    from app.models.user import User
 
-class VitalType(str, enum.Enum):
+
+class VitalType(enum.StrEnum):
     heart_rate = "heart_rate"
     bp = "bp"
     glucose = "glucose"
@@ -31,8 +37,8 @@ class Vital(Base):
     value_2: Mapped[float | None] = mapped_column(Float, nullable=True)  # BP diastolic
     recorded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
-    user: Mapped["User"] = relationship("User", back_populates="vitals")
+    user: Mapped[User] = relationship("User", back_populates="vitals")

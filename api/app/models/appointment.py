@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class Doctor(Base):
@@ -19,11 +25,11 @@ class Doctor(Base):
     specialty: Mapped[str] = mapped_column(String(100), nullable=False)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    user: Mapped["User | None"] = relationship("User", back_populates="doctor_profile")
-    slots: Mapped[list["AvailabilitySlot"]] = relationship(
+    user: Mapped[User | None] = relationship("User", back_populates="doctor_profile")
+    slots: Mapped[list[AvailabilitySlot]] = relationship(
         "AvailabilitySlot", back_populates="doctor", cascade="all, delete-orphan"
     )
-    appointments: Mapped[list["Appointment"]] = relationship(
+    appointments: Mapped[list[Appointment]] = relationship(
         "Appointment", back_populates="doctor"
     )
 
@@ -39,13 +45,13 @@ class AvailabilitySlot(Base):
     ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     is_booked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
-    doctor: Mapped["Doctor"] = relationship("Doctor", back_populates="slots")
-    appointment: Mapped["Appointment | None"] = relationship(
+    doctor: Mapped[Doctor] = relationship("Doctor", back_populates="slots")
+    appointment: Mapped[Appointment | None] = relationship(
         "Appointment", back_populates="slot"
     )
 
 
-class AppointmentStatus(str, enum.Enum):
+class AppointmentStatus(enum.StrEnum):
     confirmed = "confirmed"
     cancelled = "cancelled"
 
@@ -72,12 +78,12 @@ class Appointment(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
-    patient: Mapped["User"] = relationship(
+    patient: Mapped[User] = relationship(
         "User", back_populates="appointments", foreign_keys=[patient_id]
     )
-    doctor: Mapped["Doctor"] = relationship("Doctor", back_populates="appointments")
-    slot: Mapped["AvailabilitySlot"] = relationship("AvailabilitySlot", back_populates="appointment")
+    doctor: Mapped[Doctor] = relationship("Doctor", back_populates="appointments")
+    slot: Mapped[AvailabilitySlot] = relationship("AvailabilitySlot", back_populates="appointment")

@@ -1,26 +1,96 @@
 @import "tailwindcss";
 
+@theme {
+  --color-ink: #07090D;
+  --color-graphite: #12161D;
+  --color-mist: #F4F5F7;
+  --color-card-border: rgba(255, 255, 255, 0.08);
+
+  --color-pulse: #FF4D5E;
+  --color-pulse-glow: rgba(255, 77, 94, 0.25);
+  --color-pulse-muted: rgba(255, 77, 94, 0.12);
+
+  --color-teal: #5EE1D2;
+  --color-teal-glow: rgba(94, 225, 210, 0.25);
+  --color-teal-muted: rgba(94, 225, 210, 0.12);
+
+  --color-amber: #FFB86B;
+  --color-amber-muted: rgba(255, 184, 107, 0.12);
+
+  --color-text-primary: #F2F4F7;
+  --color-text-muted: #8B93A1;
+  --color-text-dark: #0B0F15;
+  --color-text-dark-muted: #5A6270;
+
+  --radius-pill: 9999px;
+  --radius-card: 1.75rem;
+  --radius-card-sm: 1.25rem;
+  --radius-control: 0.75rem;
+
+  --shadow-glow-pulse: 0 0 50px -10px rgba(255, 77, 94, 0.25);
+  --shadow-glow-teal: 0 0 50px -10px rgba(94, 225, 210, 0.25);
+  --shadow-elevation-high: 0 24px 48px -12px rgba(0, 0, 0, 0.70);
+  --shadow-elevation-low: 0 8px 24px -6px rgba(0, 0, 0, 0.40);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-ink: #07090D;
+  --color-graphite: #12161D;
+  --color-mist: #F4F5F7;
+  --color-text-primary: #F2F4F7;
+  --color-text-muted: #8B93A1;
+  --color-text-dark: #0B0F15;
+  --color-text-dark-muted: #5A6270;
+  --color-pulse: #FF4D5E;
+  --color-teal: #5EE1D2;
+  --color-amber: #FFB86B;
+  --border-card: rgba(255, 255, 255, 0.08);
+  --radius-card: 1.75rem;
+  --radius-control: 0.75rem;
+  --radius-pill: 9999px;
+
+  --background: #07090D;
+  --foreground: #F2F4F7;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Base Body Styles */
+html, body {
+  background-color: var(--color-ink);
+  color: var(--color-text-primary);
+  font-family: var(--font-geist-sans), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Tabular Numerals for Medical Metrics */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Frosted Glass Layers */
+.glass-nav {
+  background-color: rgba(7, 9, 13, 0.80);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-card {
+  background-color: rgba(18, 22, 29, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Global Prefers-Reduced-Motion Fallback (Accessibility Mandatory) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }

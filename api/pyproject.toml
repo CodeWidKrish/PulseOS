@@ -1,6 +1,8 @@
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
 ignore = ["E501", "B008"]  # B008: FastAPI Depends() in function defaults
 
@@ -8,7 +10,9 @@ ignore = ["E501", "B008"]  # B008: FastAPI Depends() in function defaults
 python_version = "3.11"
 strict = false
 ignore_missing_imports = true
+explicit_package_bases = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["."]

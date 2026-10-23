@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from typing import Annotated
 from uuid import UUID
 
@@ -12,7 +13,7 @@ from app.core.security import decode_token
 bearer_scheme = HTTPBearer()
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -25,8 +26,9 @@ async def get_current_user(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Extract and validate JWT, return User ORM object."""
-    from app.models.user import User
     from sqlalchemy import select
+
+    from app.models.user import User
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -37,11 +39,11 @@ async def get_current_user(
         payload = decode_token(credentials.credentials)
         if payload.get("type") != "access":
             raise credentials_exception
-        user_id: str = payload.get("sub")
+        user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
     except JWTError:
-        raise credentials_exception
+        raise credentials_exception from None
 
     result = await db.execute(select(User).where(User.id == UUID(user_id)))
     user = result.scalar_one_or_none()

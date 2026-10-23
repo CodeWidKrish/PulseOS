@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class VitalCreate(BaseModel):
@@ -18,12 +18,11 @@ class VitalCreate(BaseModel):
             raise ValueError(f"type must be one of {allowed}")
         return v
 
-    @field_validator("value_2")
-    @classmethod
-    def bp_requires_value_2(cls, v, info):
-        if info.data.get("type") == "bp" and v is None:
+    @model_validator(mode="after")
+    def validate_bp(self) -> "VitalCreate":
+        if self.type == "bp" and self.value_2 is None:
             raise ValueError("BP type requires value_2 (diastolic)")
-        return v
+        return self
 
 
 class VitalResponse(BaseModel):

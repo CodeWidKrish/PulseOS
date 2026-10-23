@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user, get_db
-from app.models.appointment import Appointment, AppointmentStatus, AvailabilitySlot, Doctor
+from app.models.appointment import Appointment, AppointmentStatus, AvailabilitySlot
 from app.models.user import User
 from app.schemas.appointment import AppointmentCreate, AppointmentResponse
 from app.services.mailer import send_appointment_confirmation
@@ -26,7 +26,7 @@ async def book_appointment(
     1. SELECT FOR UPDATE pessimistic lock (prevents race conditions)
     2. UNIQUE constraint on slot_id (final safety net)
     """
-    async with db.begin():
+    try:
         # Layer 1: pessimistic lock on the slot row
         slot_result = await db.execute(
             select(AvailabilitySlot)
@@ -54,11 +54,12 @@ async def book_appointment(
         )
         db.add(appointment)
 
-        try:
-            await db.flush()  # triggers UNIQUE constraint check
-        except IntegrityError:
-            # Layer 2: DB constraint caught it (e.g., concurrent request)
-            raise HTTPException(status.HTTP_409_CONFLICT, "Slot was just booked by another user")
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Slot was just booked by another user"
+        ) from None
 
     # Reload with relationships for response
     await db.refresh(appointment)
@@ -70,15 +71,14 @@ async def book_appointment(
     appt = result.scalar_one()
 
     # Send confirmation email (non-blocking)
-    try:
+    import contextlib
+    with contextlib.suppress(Exception):
         await send_appointment_confirmation(
             patient_email=current_user.email,
             patient_name=current_user.full_name,
             doctor_name=appt.doctor.name,
             slot_starts_at=appt.slot.starts_at,
         )
-    except Exception:
-        pass  # Email failure must not fail the booking
 
     return appt
 

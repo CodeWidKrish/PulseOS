@@ -21,6 +21,9 @@ dist/
 build/
 *.egg
 .eggs/
+*.db
+*.sqlite
+test_pulseos.db
 pip-wheel-metadata/
 .mypy_cache/
 .ruff_cache/

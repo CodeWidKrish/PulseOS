@@ -1,21 +1,27 @@
+from __future__ import annotations
+
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum, ForeignKey, JSON, String, Text
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
+if TYPE_CHECKING:
+    from app.models.user import User
 
-class ReportStatus(str, enum.Enum):
+
+class ReportStatus(enum.StrEnum):
     pending = "pending"
     processing = "processing"
     done = "done"
     error = "error"
 
 
-class ReportValueStatus(str, enum.Enum):
+class ReportValueStatus(enum.StrEnum):
     normal = "normal"
     low = "low"
     high = "high"
@@ -36,16 +42,16 @@ class Report(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
     # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="reports")
-    values: Mapped[list["ReportValue"]] = relationship(
+    user: Mapped[User] = relationship("User", back_populates="reports")
+    values: Mapped[list[ReportValue]] = relationship(
         "ReportValue", back_populates="report", cascade="all, delete-orphan"
     )
-    explanation: Mapped["ReportExplanation | None"] = relationship(
+    explanation: Mapped[ReportExplanation | None] = relationship(
         "ReportExplanation", back_populates="report", cascade="all, delete-orphan"
     )
 
@@ -66,7 +72,7 @@ class ReportValue(Base):
         Enum(ReportValueStatus), nullable=False, default=ReportValueStatus.normal
     )
 
-    report: Mapped["Report"] = relationship("Report", back_populates="values")
+    report: Mapped[Report] = relationship("Report", back_populates="values")
 
 
 class ReportExplanation(Base):
@@ -82,8 +88,8 @@ class ReportExplanation(Base):
     model: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
-    report: Mapped["Report"] = relationship("Report", back_populates="explanation")
+    report: Mapped[Report] = relationship("Report", back_populates="explanation")

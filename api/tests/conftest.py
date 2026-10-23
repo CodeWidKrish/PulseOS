@@ -3,21 +3,27 @@ Pytest configuration and shared fixtures for PulseOS API tests.
 Uses an in-memory SQLite database to avoid needing PostgreSQL during CI.
 """
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app import models as _models  # noqa: F401
 from app.core.database import Base
 from app.core.deps import get_db
 from app.main import app
 
-# In-memory SQLite for tests (no PostgreSQL needed in CI)
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# Shared SQLite file for tests (guarantees cross-thread schema visibility)
+TEST_DB_FILE = "./test_pulseos.db"
+TEST_DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_FILE}"
 
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+test_engine = create_async_engine(
+    TEST_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    echo=False,
+)
 TestSessionLocal = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
 

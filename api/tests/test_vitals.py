@@ -1,7 +1,9 @@
+from datetime import UTC, datetime
+
 import pytest
-from app.services.scoring import compute_health_score, compute_trend
+
 from app.models.vital import Vital, VitalType
-from datetime import datetime, timezone
+from app.services.scoring import compute_health_score, compute_trend
 
 
 def make_vital(vtype: str, v1: float, v2: float | None = None) -> Vital:
@@ -9,7 +11,7 @@ def make_vital(vtype: str, v1: float, v2: float | None = None) -> Vital:
     v.type = vtype
     v.value_1 = v1
     v.value_2 = v2
-    v.recorded_at = datetime.now(timezone.utc)
+    v.recorded_at = datetime.now(UTC)
     return v
 
 

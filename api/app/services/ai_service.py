@@ -3,7 +3,7 @@ AI Service — Provider-swappable LLM abstraction.
 Current implementation: Groq (llama-3.3-70b-versatile)
 To swap: implement a new class conforming to AIService protocol, update get_ai_service().
 """
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from groq import AsyncGroq
 
