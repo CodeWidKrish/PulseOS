@@ -1,0 +1,62 @@
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - pulseos
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - pulseos
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: pulseos
+      POSTGRES_USER: pulseos
+      POSTGRES_PASSWORD: pulseos
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulseos -d pulseos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - pulseos
+
+volumes:
+  pgdata:
+  uploads:
+
+networks:
+  pulseos:
+    driver: bridge
