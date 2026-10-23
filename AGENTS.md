@@ -26,6 +26,7 @@ PulseOS is an AI health companion that turns medical lab reports, vitals, and he
 
 ## 5. Working Rules
 - **Smallest Correct Change**: Make minimal focused edits. Never refactor or touch files unrelated to the active task.
+- **Design Authority**: Read `DESIGN.md` before every UI task. Every visual decision must be traceable to it.
 - **Immediate Verification**: After every file modification, run the smallest relevant check (lint, type-check, or unit test) and fix failures before proceeding.
 - **Commit Format**: Conventional Commits: `<type>(<scope>): <short description>` (e.g., `feat(reports): add pdfplumber parser`).
 - **Never Do**:
