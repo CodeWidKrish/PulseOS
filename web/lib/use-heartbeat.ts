@@ -7,13 +7,13 @@ import { useHeart } from "./heart-context";
 
 interface UseHeartbeatOptions {
   wrapperRef: React.RefObject<HTMLElement | null>;
-  isHeroVisible?: boolean;
+  active?: boolean;
   onGlowPulse?: (strength: number) => void;
 }
 
 export function useHeartbeat({
   wrapperRef,
-  isHeroVisible = true,
+  active = true,
   onGlowPulse,
 }: UseHeartbeatOptions) {
   const { bpm, beat } = useHeart();
@@ -33,7 +33,7 @@ export function useHeartbeat({
   }, []);
 
   useEffect(() => {
-    if (reducedMotion || !isHeroVisible) {
+    if (reducedMotion || !active) {
       if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
       if (dubTimeoutIdRef.current) clearTimeout(dubTimeoutIdRef.current);
       return;
@@ -49,7 +49,7 @@ export function useHeartbeat({
       const cycleMs = (60 / Math.max(40, bpm)) * 1000 * variance;
 
       // 1. Primary "Lub" Beat
-      if (isTabVisibleRef.current && isHeroVisible) {
+      if (isTabVisibleRef.current && active) {
         beat(1.0, false);
         onGlowPulse?.(1.0);
 
@@ -70,7 +70,7 @@ export function useHeartbeat({
 
       // 2. Secondary "Dub" Beat about 0.28s later
       dubTimeoutIdRef.current = setTimeout(() => {
-        if (!isAlive || !isTabVisibleRef.current || !isHeroVisible) return;
+        if (!isAlive || !isTabVisibleRef.current || !active) return;
 
         beat(0.65, true);
         onGlowPulse?.(0.6);
@@ -101,5 +101,5 @@ export function useHeartbeat({
       if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
       if (dubTimeoutIdRef.current) clearTimeout(dubTimeoutIdRef.current);
     };
-  }, [bpm, isHeroVisible, reducedMotion, beat, wrapperRef, onGlowPulse]);
+  }, [bpm, active, reducedMotion, beat, wrapperRef, onGlowPulse]);
 }

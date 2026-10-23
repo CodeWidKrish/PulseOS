@@ -4,6 +4,7 @@ import React, { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { MARKETING_CONTENT } from "@/lib/content";
 import { useLenis } from "@/lib/use-lenis";
+import { useHeart } from "@/lib/heart-context";
 
 interface MarketingNavProps {
   onOpenCommandPalette: () => void;
@@ -22,6 +23,7 @@ export function MarketingNav({ onOpenCommandPalette }: MarketingNavProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMac = useSyncExternalStore(subscribeNoop, getIsMac, () => false);
   const { scrollTo } = useLenis();
+  const { soundEnabled, setSoundEnabled } = useHeart();
 
   const handleLinkClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -56,13 +58,34 @@ export function MarketingNav({ onOpenCommandPalette }: MarketingNavProps) {
         ))}
       </ul>
 
-      {/* Right Action Cluster: Command Palette + CTA */}
+      {/* Right Action Cluster: Sound Toggle, Command Palette, CTA (Flex row, gap-3, no overlap) */}
       <div className="flex items-center gap-3">
-        {/* Command Palette Trigger */}
+        {/* Sound Toggle (Icon Button) */}
+        <button
+          type="button"
+          onClick={() => setSoundEnabled((prev) => !prev)}
+          className={`p-1.5 rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2] ${
+            soundEnabled
+              ? "bg-[#FF4D5E]/15 border-[#FF4D5E]/40 text-[#FF4D5E] shadow-[0_0_10px_rgba(255,77,94,0.25)]"
+              : "bg-white/[0.04] border-white/15 text-[#8B93A1] hover:text-[#F2F4F7]"
+          }`}
+          aria-label={soundEnabled ? "Mute heartbeat audio" : "Enable heartbeat audio"}
+          aria-pressed={soundEnabled}
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {soundEnabled ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H2v-6h3.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l4-4m0 0l-4-4m4 4H13" />
+            )}
+          </svg>
+        </button>
+
+        {/* Command Palette Trigger (Hidden below 1100px) */}
         <button
           type="button"
           onClick={onOpenCommandPalette}
-          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#8B93A1] hover:text-[#F2F4F7] bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
+          className="hidden min-[1100px]:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#8B93A1] hover:text-[#F2F4F7] bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
           aria-label="Open command palette"
         >
           <span>
@@ -76,7 +99,7 @@ export function MarketingNav({ onOpenCommandPalette }: MarketingNavProps) {
         <Link
           href={MARKETING_CONTENT.nav.cta.href}
           onClick={(e) => handleLinkClick(e, MARKETING_CONTENT.nav.cta.href)}
-          className="inline-flex items-center justify-center px-4 py-1.5 text-xs sm:text-sm font-medium text-[#07090D] bg-[#F2F4F7] hover:bg-white rounded-full transition-transform hover:scale-[1.03] active:scale-[0.98] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
+          className="inline-flex items-center justify-center px-4 py-1.5 text-xs sm:text-sm font-medium text-[#07090D] bg-[#F2F4F7] hover:bg-white rounded-full transition-transform hover:scale-[1.03] active:scale-[0.98] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2] whitespace-nowrap"
         >
           {MARKETING_CONTENT.nav.cta.label}
         </Link>

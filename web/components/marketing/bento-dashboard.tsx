@@ -24,6 +24,38 @@ export function BentoDashboard() {
   const [animatedScore, setAnimatedScore] = useState(0);
   const reducedMotion = useReducedMotion();
 
+  const isDraggingSliderRef = useRef(false);
+  const sliderBoxRef = useRef<HTMLDivElement | null>(null);
+
+  const updateSliderFromPointer = (clientX: number) => {
+    if (!sliderBoxRef.current) return;
+    const rect = sliderBoxRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    const percent = Math.round((x / rect.width) * 100);
+    setSliderPercent(Math.max(5, Math.min(95, percent)));
+  };
+
+  const handleSliderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    isDraggingSliderRef.current = true;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+    updateSliderFromPointer(e.clientX);
+  };
+
+  const handleSliderPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingSliderRef.current) return;
+    updateSliderFromPointer(e.clientX);
+  };
+
+  const handleSliderPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    isDraggingSliderRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+  };
+
   // Native IntersectionObserver to trigger animations smoothly on scroll
   useEffect(() => {
     const el = containerRef.current;
@@ -91,7 +123,7 @@ export function BentoDashboard() {
     <section
       ref={containerRef}
       id="app"
-      className="relative z-20 py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-[#F4F5F7] text-[#0B0F15] transition-colors"
+      className="relative z-20 py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-transparent text-[#0B0F15] transition-colors"
       aria-label="Dashboard Preview"
     >
       <div className="max-w-[1200px] mx-auto">
@@ -354,8 +386,12 @@ export function BentoDashboard() {
 
             {/* Slider Container */}
             <div
-              className="relative mt-5 rounded-2xl overflow-hidden bg-[#F4F5F7] min-h-[160px] border border-black/10 select-none"
-              style={{ ["--slider-percent" as string]: `${sliderPercent}%` }}
+              ref={sliderBoxRef}
+              onPointerDown={handleSliderPointerDown}
+              onPointerMove={handleSliderPointerMove}
+              onPointerUp={handleSliderPointerUp}
+              onPointerCancel={handleSliderPointerUp}
+              className="relative mt-5 rounded-2xl overflow-hidden bg-[#F4F5F7] min-h-[190px] border border-black/10 select-none cursor-ew-resize touch-none"
             >
               {/* Before View (Dense Lab Format) */}
               <div className="absolute inset-0 p-5 text-xs sm:text-sm font-mono text-[#5A6270] leading-relaxed">
@@ -371,9 +407,9 @@ export function BentoDashboard() {
 
               {/* After View (Calm Plain English, Clip-path applied) */}
               <div
-                className="absolute inset-0 p-5 text-xs sm:text-sm font-sans bg-[#E8FBF8] text-[#0B3B36] leading-relaxed transition-none"
+                className="absolute inset-0 p-5 text-xs sm:text-sm font-sans bg-[#E8FBF8] text-[#0B3B36] leading-relaxed pointer-events-none transition-none"
                 style={{
-                  clipPath: `inset(0 calc(100% - ${sliderPercent}%) 0 0)`,
+                  clipPath: `inset(0 ${(100 - sliderPercent).toFixed(1)}% 0 0)`,
                 }}
               >
                 <span className="text-[10px] uppercase tracking-wider text-[#0B3B36] block mb-1 font-bold">
@@ -390,15 +426,15 @@ export function BentoDashboard() {
 
               {/* Divider Line Handle */}
               <div
-                className="absolute top-0 bottom-0 w-[2px] bg-[#0B0D12] pointer-events-none"
+                className="absolute top-0 bottom-0 w-[2px] bg-[#0B0D12] pointer-events-none z-20"
                 style={{ left: `${sliderPercent}%` }}
               >
-                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-white border border-black/20 shadow-md flex items-center justify-center text-[10px] text-black">
+                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white border border-black/20 shadow-lg flex items-center justify-center text-xs font-bold text-black pointer-events-none select-none">
                   ↔
                 </div>
               </div>
 
-              {/* Interactive Range Input overlay */}
+              {/* Accessible Range Input */}
               <input
                 type="range"
                 min="5"
@@ -406,7 +442,7 @@ export function BentoDashboard() {
                 value={sliderPercent}
                 onChange={(e) => setSliderPercent(Number(e.target.value))}
                 aria-label="Drag slider to compare raw report with PulseOS"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize m-0 z-10"
+                className="sr-only"
               />
             </div>
           </div>

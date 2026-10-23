@@ -111,13 +111,10 @@ const transformLine = (f: Float64Array, d: Float64Array, v: Int32Array, z: Float
   z[0] = -FAR;
   z[1] = FAR;
   for (let q = 1; q < n; q++) {
-    const s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+    let s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
     while (s <= z[k]) {
       k--;
-      const nextS = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
-      if (nextS > z[k]) {
-        break;
-      }
+      s = (f[q] + q * q - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
     }
     k++;
     v[k] = q;
@@ -742,7 +739,8 @@ export const ElectricLogo = forwardRef<ElectricLogoHandle, ElectricLogoProps>(fu
     const image = new Image();
     image.crossOrigin = 'anonymous';
     image.decoding = 'async';
-    image.onload = () => {
+
+    const doTrace = () => {
       if (!alive) return;
       let traced: Shape | null = null;
       try {
@@ -750,9 +748,22 @@ export const ElectricLogo = forwardRef<ElectricLogoHandle, ElectricLogoProps>(fu
       } catch {
         traced = null;
       }
-      if (traced) shapeRef.current = traced;
+      if (traced) {
+        shapeRef.current = traced;
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[ElectricLogo] Traced ${src || 'BOLT'}: width=${traced.logoWidth}, height=${traced.logoHeight}`);
+        }
+      }
     };
+
+    image.onload = doTrace;
     image.src = src || BOLT;
+    if (typeof image.decode === 'function') {
+      image.decode().then(doTrace).catch(() => {
+        // fallback handled by onload
+      });
+    }
+
     return () => {
       alive = false;
       image.onload = null;
@@ -1167,7 +1178,7 @@ export const ElectricLogo = forwardRef<ElectricLogoHandle, ElectricLogoProps>(fu
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={src || '/media/heart-anatomy.svg'}
+          src={src || '/media/heart-plain.svg'}
           alt=""
           aria-hidden="true"
           className="electric-logo__fallback-img animate-[pulse_1.2s_ease-in-out_infinite]"

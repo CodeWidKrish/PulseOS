@@ -7,6 +7,8 @@ import { MARKETING_CONTENT } from "@/lib/content";
 import { LiveEcgStrip } from "./live-ecg-strip";
 import { AmbientBloodCells } from "./ambient-blood-cells";
 
+import { useHeart } from "@/lib/heart-context";
+
 // Dynamically load MaskedHeading with ssr: false so it doesn't block first paint
 const DynamicMaskedHeading = dynamic(
   () => import("@/components/ui/MaskedHeading"),
@@ -21,6 +23,7 @@ const DynamicMaskedHeading = dynamic(
 );
 
 export function Hero() {
+  const { bpm } = useHeart();
   return (
     <section
       id="hero"
@@ -60,24 +63,34 @@ export function Hero() {
           align="center"
         />
 
-        {/* Soft radial dark scrim (ink #07090D at ~72% opacity, feathered) for 4.5:1 text contrast */}
-        <div className="mt-6 px-6 sm:px-8 py-5 rounded-3xl bg-[radial-gradient(ellipse_at_center,rgba(7,9,13,0.76)_0%,rgba(7,9,13,0.52)_65%,transparent_100%)] backdrop-blur-[2px] max-w-[580px] mx-auto pointer-events-auto">
+        {/* Subcopy and CTA Block with Feathered Radial Scrim (no visible card/borders) */}
+        <div className="relative mt-8 max-w-[620px] mx-auto pointer-events-auto">
+          {/* Feathered radial dark scrim: behind subcopy & CTAs (140% w/h) */}
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] pointer-events-none -z-10"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, rgba(7,9,13,0.75) 0%, rgba(7,9,13,0.55) 45%, rgba(7,9,13,0) 75%)",
+            }}
+            aria-hidden="true"
+          />
+
           {/* Subcopy */}
-          <p className="text-[#8B93A1] font-light text-base sm:text-lg md:text-xl leading-[1.55] max-w-[46ch] mx-auto">
+          <p className="text-[#A4ACB9] font-light text-base sm:text-lg md:text-xl leading-[1.55] max-w-[46ch] mx-auto px-4">
             {MARKETING_CONTENT.hero.subcopy}
           </p>
 
           {/* Action Row */}
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3.5">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
             <Link
               href={MARKETING_CONTENT.hero.ctaPrimary.href}
-              className="inline-flex items-center justify-center px-6 py-3 text-sm sm:text-base font-medium rounded-full bg-[#F2F4F7] text-[#07090D] hover:scale-[1.04] transition-transform duration-200 shadow-lg shadow-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
+              className="inline-flex items-center justify-center px-6 py-3.5 text-sm sm:text-base font-medium rounded-full bg-[#F2F4F7] text-[#07090D] hover:scale-[1.04] transition-transform duration-200 shadow-lg shadow-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
             >
               {MARKETING_CONTENT.hero.ctaPrimary.label}
             </Link>
             <Link
               href={MARKETING_CONTENT.hero.ctaSecondary.href}
-              className="inline-flex items-center justify-center px-6 py-3 text-sm sm:text-base font-medium rounded-full border border-white/20 text-[#F2F4F7] hover:bg-white/[0.08] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
+              className="inline-flex items-center justify-center px-6 py-3.5 text-sm sm:text-base font-medium rounded-full border border-white/20 text-[#F2F4F7] hover:bg-white/[0.08] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
             >
               {MARKETING_CONTENT.hero.ctaSecondary.label}
             </Link>
@@ -87,8 +100,12 @@ export function Hero() {
 
       {/* Lower Area: Cursor interaction hint and Live ECG Strip */}
       <div className="w-full flex flex-col items-center gap-2 mt-auto pt-6 z-10 pointer-events-none">
-        <span className="text-xs text-[#8B93A1]/70 tracking-wide font-light">
-          {MARKETING_CONTENT.hero.cursorHint} · Press & hold to charge
+        <span className="text-xs text-[#8B93A1]/80 tracking-wide font-light flex items-center gap-2">
+          <span className="font-mono text-[#FF4D5E] font-medium bg-[#FF4D5E]/10 px-2 py-0.5 rounded-full border border-[#FF4D5E]/25">
+            {bpm} BPM
+          </span>
+          <span>·</span>
+          <span>{MARKETING_CONTENT.hero.cursorHint} · Press & hold to charge</span>
         </span>
         <LiveEcgStrip />
       </div>

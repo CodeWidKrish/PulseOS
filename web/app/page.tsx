@@ -31,12 +31,20 @@ const BentoDashboard = dynamic(
 export default function MarketingPage() {
   return (
     <HeartProvider>
-      <div className="relative min-h-screen bg-[#07090D] text-[#F2F4F7] overflow-x-hidden selection:bg-[#FF4D5E]/30 selection:text-white">
-        {/* Client Shell: Nav, Background Heart, Command Palette */}
+      <div className="relative min-h-screen text-[#F2F4F7] overflow-x-hidden selection:bg-[#FF4D5E]/30 selection:text-white">
+        {/* Layer 0: Fixed cross-fading background layer between #07090D and #F4F5F7 */}
+        <div
+          id="fixed-page-bg"
+          className="fixed inset-0 z-0 pointer-events-none transition-colors duration-500 will-change-[background-color]"
+          style={{ backgroundColor: "#07090D" }}
+          aria-hidden="true"
+        />
+
+        {/* Layer 1: Client Shell with Persistent Background Heart (z-1) & Nav/Palette */}
         <MarketingClientShell />
 
-        {/* Main Marketing Sections */}
-        <main className="relative z-10">
+        {/* Layer 2: Main Marketing Sections (Transparent backgrounds) */}
+        <main className="relative z-[2]">
           {/* 1. Hero with MaskedHeading, Dual-Layer Heart, Ambient Cells & Live ECG Strip */}
           <Hero />
 
@@ -57,10 +65,10 @@ export default function MarketingPage() {
 
           {/* 7. Closing CTA (Server Component) */}
           <ClosingCTA />
-        </main>
 
-        {/* Footer with Medical Disclaimer (Server Component) */}
-        <MarketingFooter />
+          {/* Footer with Medical Disclaimer (Server Component) */}
+          <MarketingFooter />
+        </main>
       </div>
     </HeartProvider>
   );

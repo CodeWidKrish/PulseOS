@@ -102,7 +102,7 @@ export function InteractiveDemo() {
   return (
     <section
       id="demo"
-      className="relative z-20 py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-[#07090D] border-t border-white/6"
+      className="relative z-20 py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-transparent border-t border-white/6"
       aria-label="Interactive Demo"
     >
       <div className="max-w-[1200px] mx-auto">

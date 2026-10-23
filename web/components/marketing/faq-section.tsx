@@ -15,7 +15,7 @@ export function FAQSection() {
   return (
     <section
       id="faq"
-      className="relative z-20 py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-[#F4F5F7] text-[#0B0F15] transition-colors"
+      className="relative z-20 py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-transparent text-[#0B0F15] transition-colors"
       aria-label="Frequently Asked Questions"
     >
       <div className="max-w-[820px] mx-auto">

@@ -51,7 +51,7 @@
   position: absolute;
   inset: 0;
   display: block;
-  background: radial-gradient(ellipse at center, #FF2B47 0%, #C8082B 55%, #5E0013 100%);
+  background: radial-gradient(ellipse at center, #FF385C 0%, #E8103A 40%, #B30526 70%, #730018 100%);
   will-change: transform, filter;
 }
 
@@ -71,13 +71,14 @@
 }
 
 .masked-heading__spot--tone {
-  background: #808080;
-  mix-blend-mode: saturation;
+  background: #A00828;
+  mix-blend-mode: color;
+  opacity: 0.2;
 }
 
 .masked-heading__spot--shade {
   background: #000;
-  opacity: 0.55;
+  opacity: 0.25;
 }
 
 .masked-heading__outline {
