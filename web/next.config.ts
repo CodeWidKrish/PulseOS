@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: [
       "recharts",
       "framer-motion",
-      "three",
       "gsap",
       "lenis",
       "react-hot-toast",
