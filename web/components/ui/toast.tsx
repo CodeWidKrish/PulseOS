@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import toast, { Toaster as HotToaster } from "react-hot-toast";
+import { toast as hotToast, Toaster as HotToaster } from "react-hot-toast";
 
 export const showToast = {
   success: (message: string) => {
-    toast.success(message, {
+    hotToast.success(message, {
       icon: (
         <span className="w-2 h-2 rounded-full bg-[#5EE1D2] shadow-[0_0_8px_rgba(94,225,210,0.6)]" />
       ),
@@ -23,7 +23,7 @@ export const showToast = {
   },
 
   error: (message: string) => {
-    toast.error(message, {
+    hotToast.error(message, {
       icon: (
         <span className="w-2 h-2 rounded-full bg-[#FF4D5E] shadow-[0_0_8px_rgba(255,77,94,0.6)]" />
       ),
@@ -41,7 +41,7 @@ export const showToast = {
   },
 
   info: (message: string) => {
-    toast(message, {
+    hotToast(message, {
       icon: (
         <span className="w-2 h-2 rounded-full bg-[#FFB86B] shadow-[0_0_8px_rgba(255,184,107,0.6)]" />
       ),
@@ -58,6 +58,8 @@ export const showToast = {
     });
   },
 };
+
+export const toast = showToast;
 
 export function ToastContainer() {
   return (
