@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="PulseOS explains your lab reports in plain language, tracks your vitals, and books care.">
+<title>PulseOS — your health, in plain language</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#07090D;--card:#12161D;--mist:#F4F5F7;--text:#F2F4F7;--mute:#8B93A1;--pulse:#FF4D5E;--teal:#5EE1D2;--amber:#FFB86B;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit;margin:0}
+html{background:var(--ink);scroll-padding-top:70px}
+body{background:var(--ink);color:var(--text);font-family:'Geist',-apple-system,'SF Pro Display','Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:8px}
+#c{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+main,footer{position:relative;z-index:1}
+nav{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:calc(12px + env(safe-area-inset-top,0px)) clamp(16px,4vw,48px) 12px;background:rgba(7,9,13,.6);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-bottom:1px solid rgba(255,255,255,.06)}
+.logo{font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
+.logo i{width:9px;height:9px;border-radius:50%;background:var(--pulse);box-shadow:0 0 12px var(--pulse);animation:b 1.2s infinite}
+@keyframes b{0%,60%,100%{transform:scale(1)}15%{transform:scale(1.5)}}
+nav ul{display:flex;gap:26px;list-style:none;padding:0;font-size:.88rem;color:var(--mute)}nav ul a:hover{color:var(--text)}
+.nr{display:flex;gap:10px;align-items:center}
+.k{font-size:.75rem;color:var(--mute);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 10px}
+.btn{display:inline-block;padding:13px 26px;border-radius:999px;font-weight:500;transition:transform .25s,background .25s}
+.btn.m{background:var(--text);color:var(--ink)}.btn.m:hover{transform:scale(1.04)}
+.btn.g{border:1px solid rgba(255,255,255,.22)}.btn.g:hover{background:rgba(255,255,255,.08)}
+nav .btn{padding:8px 18px;font-size:.85rem}
+h1,h2{font-weight:600;letter-spacing:-.04em;line-height:1.03}
+.sub{color:var(--mute);font-weight:300;line-height:1.55;font-size:clamp(1rem,1.6vw,1.25rem);max-width:46ch}
+#hero{min-height:100svh;display:flex;flex-direction:column;align-items:center;text-align:center;padding:clamp(120px,22vh,210px) 22px 60px}
+h1{font-size:clamp(2.7rem,8.4vw,7.2rem);max-width:12ch}
+.mk{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.08em}
+#hero .sub{margin-top:24px}.row{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.trust{position:absolute;bottom:22px;color:var(--mute);font-size:.8rem}
+#story{height:100svh;position:relative;overflow:hidden}
+.ps{position:absolute;left:clamp(22px,7vw,120px);top:50%;translate:0 -50%;width:min(520px,86vw);height:340px}
+.pn{position:absolute;left:0;top:50%;translate:0 -50%;width:100%;opacity:0}.pn:first-child{opacity:1}
+.pn h2{font-size:clamp(2rem,4.8vw,4rem)}.pn p{margin-top:16px;color:var(--mute);font-weight:300;line-height:1.55;font-size:clamp(1rem,1.5vw,1.2rem);max-width:40ch}
+.rail{position:absolute;right:clamp(14px,3vw,40px);top:50%;translate:0 -50%;width:2px;height:120px;background:rgba(255,255,255,.12);overflow:hidden}.rail i{display:block;height:100%;background:var(--text);transform-origin:top;transform:scaleY(0)}
+section.s{padding:clamp(80px,13vh,150px) clamp(20px,7vw,120px);position:relative;z-index:2}
+.w{max-width:1200px;margin:0 auto}
+.dk{background:var(--ink)}.lt{background:var(--mist);color:#0B0D12}
+.s h2{font-size:clamp(2.1rem,5vw,4.2rem)}.lt .sub{color:#5B6270}
+.demo{display:grid;grid-template-columns:1fr 1.2fr;gap:clamp(28px,5vw,72px);align-items:center;margin-top:8px}
+.term{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:26px;padding:24px;min-height:360px}
+.bar{display:flex;gap:7px;margin-bottom:16px}.bar i{width:10px;height:10px;border-radius:50%;background:#2A303B}
+.vals{display:grid;gap:8px;margin-bottom:14px}
+.v{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:14px;background:#1A1F28;font-size:.92rem;opacity:0;transform:translateY(8px);transition:.5s}
+.v.on{opacity:1;transform:none}
+.chip{font-size:.75rem;padding:3px 10px;border-radius:99px;background:rgba(94,225,210,.15);color:var(--teal)}.chip.a{background:rgba(255,184,107,.16);color:var(--amber)}
+#out{color:#C9CFD9;font-weight:300;line-height:1.65;font-size:.98rem;min-height:110px}
+#out b{color:var(--text);font-weight:500}
+.cur::after{content:'';display:inline-block;width:7px;height:1em;background:var(--teal);margin-left:3px;vertical-align:-2px;animation:b 1s steps(2) infinite}
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:40px}
+.bx{background:#fff;border-radius:28px;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,.04);position:relative;overflow:hidden}
+.bx h3{font-size:1.05rem;font-weight:600;letter-spacing:-.02em}.bx small{color:#6B7280;font-size:.82rem}
+.c2{grid-column:span 2}.c3{grid-column:span 3}.c4{grid-column:span 4}
+.blk{background:#0B0D12;color:var(--text)}.blk small{color:#9AA2B0}
+.ring{display:flex;align-items:center;gap:18px;margin-top:14px}.ring svg{width:112px;height:112px;flex:none}
+.ring b{font-size:2.6rem;letter-spacing:-.04em;font-weight:600}
+.tg{display:inline-flex;background:#EDEEF1;border-radius:99px;padding:3px;margin:10px 0 0}.tg button{padding:5px 14px;border-radius:99px;font-size:.8rem;color:#5B6270}.tg button[aria-pressed=true]{background:#fff;color:#0B0D12;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.big{font-size:2rem;font-weight:600;letter-spacing:-.03em;margin-top:8px}
+.bx svg.ch{width:100%;height:auto;margin-top:6px}
+.dr{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.dr button,.sl button{padding:7px 14px;border-radius:99px;border:1px solid rgba(255,255,255,.2);font-size:.85rem}
+.dr button[aria-pressed=true],.sl button[aria-pressed=true]{background:var(--text);color:var(--ink)}
+.sl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.med label{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #ECEDF0;font-size:.95rem;cursor:pointer}
+.med input{accent-color:#0B0D12;width:18px;height:18px}.med input:checked+span{text-decoration:line-through;color:#9AA0AB}
+.ba{position:relative;margin-top:14px;border-radius:18px;overflow:hidden;background:#F4F5F7;height:150px;--p:50%}
+.ba>div{position:absolute;inset:0;padding:16px;font-size:.85rem;line-height:1.5}
+.bef{font-family:ui-monospace,Menlo,monospace;color:#6B7280}.aft{background:#E8FBF8;color:#0B3B36;clip-path:inset(0 calc(100% - var(--p)) 0 0)}
+.ba input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}
+.ba .h{position:absolute;top:0;bottom:0;left:var(--p);width:2px;background:#0B0D12}
+.sec{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:40px}
+.sec div{background:var(--card);border-radius:24px;padding:26px}.sec h3{font-weight:600;letter-spacing:-.02em;margin-bottom:8px}.sec p{color:var(--mute);font-weight:300;line-height:1.55;font-size:.95rem}
+details{border-bottom:1px solid #DADCE1;padding:20px 0}summary{cursor:pointer;font-weight:500;font-size:1.1rem;list-style:none;display:flex;justify-content:space-between}summary::after{content:'+';transition:.3s}details[open] summary::after{rotate:45deg}details p{margin-top:12px;color:#5B6270;line-height:1.6;max-width:62ch}
+#cta{min-height:90svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 22px;position:relative}
+#cta h2{font-size:clamp(2.6rem,7vw,6rem);max-width:13ch}#cta .sub{margin:22px 0 0}
+footer{padding:26px clamp(18px,4vw,48px);color:var(--mute);font-size:.8rem;text-align:center;border-top:1px solid rgba(255,255,255,.07);background:var(--ink)}
+#pal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;padding-top:16vh}#pal.o{display:flex}
+#pal div{width:min(520px,92vw);background:#161B23;border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden}
+#pal input{width:100%;padding:18px 20px;background:none;border:0;border-bottom:1px solid rgba(255,255,255,.08);color:var(--text);font:inherit;outline:0}
+#pal li{list-style:none;padding:13px 20px;cursor:pointer;color:#C9CFD9}#pal li:hover,#pal li.f{background:rgba(255,255,255,.07)}#pal ul{padding:6px 0;margin:0}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));translate:-50% 30px;opacity:0;z-index:60;background:#fff;color:#0B0D12;padding:12px 20px;border-radius:99px;font-size:.9rem;font-weight:500;transition:.4s;pointer-events:none}#toast.on{opacity:1;translate:-50% 0}
+@media(max-width:900px){nav ul,.k{display:none}.demo{grid-template-columns:1fr}.bento{grid-template-columns:1fr}.bento>*{grid-column:auto!important}.sec{grid-template-columns:1fr}.ps{top:auto;bottom:6vh;translate:0 0;height:300px}.pn{top:auto;bottom:0;translate:0 0}.rail{display:none}}
+@media(prefers-reduced-motion:reduce){.logo i,.cur::after{animation:none}.v{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-hidden="true"></canvas>
+<nav aria-label="Main">
+  <a class="logo" href="#hero"><i></i>PulseOS</a>
+  <ul><li><a href="#story">How it works</a></li><li><a href="#demo">Demo</a></li><li><a href="#app">Dashboard</a></li><li><a href="#security">Security</a></li><li><a href="#faq">FAQ</a></li></ul>
+  <div class="nr"><button class="k" id="kb" aria-label="Open command menu">Ctrl K</button><a class="btn m" href="#demo">Try the demo</a></div>
+</nav>
+<main>
+<section id="hero">
+  <h1 id="h1"><span class="mk"><span class="wd">Your</span></span> <span class="mk"><span class="wd">health,</span></span> <span class="mk"><span class="wd">in</span></span> <span class="mk"><span class="wd">plain</span></span> <span class="mk"><span class="wd">language.</span></span></h1>
+  <p class="sub" id="hs">Upload a lab report, ask about a symptom, track your vitals, and book a doctor. All in one calm place.</p>
+  <div class="row" id="hr"><a class="btn m" href="#demo">Explain a sample report</a><a class="btn g" href="#app">See the dashboard</a></div>
+  <span class="trust">Move your cursor through the heart</span>
+</section>
+
+<section id="story" aria-label="How PulseOS works">
+  <div class="ps">
+    <article class="pn"><h2>Upload a report. Get the meaning.</h2><p>Hemoglobin, TSH, HbA1c: every value explained in plain words, with questions to ask your doctor.</p></article>
+    <article class="pn"><h2>Watch your vitals move.</h2><p>Log heart rate, blood pressure, and glucose. See the trend, not just today’s number.</p></article>
+    <article class="pn"><h2>Book care when it matters.</h2><p>Pick a doctor, choose a free slot, and get a confirmation without leaving the page.</p></article>
+  </div>
+  <div class="rail"><i></i></div>
+</section>
+
+<section class="s dk" id="demo"><div class="w">
+  <h2>Try it. It takes seconds.</h2>
+  <div class="demo">
+    <div><p class="sub">Run a sample blood report through PulseOS and watch it explain every value in plain language.</p>
+    <div class="row" style="justify-content:flex-start"><button class="btn m" id="run">Analyze sample report</button></div></div>
+    <div class="term" aria-live="polite"><div class="bar"><i></i><i></i><i></i></div>
+      <div class="vals">
+        <div class="v"><span>Hemoglobin 13.8 g/dL</span><span class="chip">Normal</span></div>
+        <div class="v"><span>Fasting glucose 108 mg/dL</span><span class="chip a">Slightly high</span></div>
+        <div class="v"><span>TSH 2.1 mIU/L</span><span class="chip">Normal</span></div>
+      </div>
+      <div id="out"></div></div>
+  </div>
+</div></section>
+
+<section class="s lt" id="app"><div class="w">
+  <h2>Your week, at a glance.</h2>
+  <p class="sub" style="margin-top:16px">One dashboard for every reading, report, and appointment.</p>
+  <div class="bento">
+    <div class="bx c2"><h3>Health score</h3><small>Based on sample vitals</small>
+      <div class="ring"><svg viewBox="0 0 120 120" role="img" aria-label="Score 86 out of 100"><circle cx="60" cy="60" r="50" fill="none" stroke="#ECEDF0" stroke-width="12"/><circle id="rg" cx="60" cy="60" r="50" fill="none" stroke="#0B0D12" stroke-width="12" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/></svg><div><b id="sc">0</b><small> / 100</small></div></div></div>
+    <div class="bx c4"><h3>Resting heart rate</h3>
+      <div class="tg" role="group" aria-label="Range"><button aria-pressed="true" data-r="0">7 days</button><button aria-pressed="false" data-r="1">30 days</button></div>
+      <div class="big"><span id="av">64</span> <small>bpm average</small></div>
+      <svg class="ch" viewBox="0 0 600 150"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#FF4D5E"/><stop offset="1" stop-color="#FFB86B"/></linearGradient></defs><path id="ln" d="M0,110 C60,90 90,120 150,85 S250,50 310,78 S420,110 480,62 S560,44 600,40" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div>
+    <div class="bx c3 blk" id="book"><h3>Book a doctor</h3><small>Sample doctors</small>
+      <div class="dr" id="dr"><button aria-pressed="true">Dr. A. Mehta · General</button><button aria-pressed="false">Dr. R. Shah · Endocrine</button></div>
+      <div class="sl" id="sl"><button aria-pressed="false">Thu 10:30</button><button aria-pressed="true">Thu 11:15</button><button aria-pressed="false">Fri 4:00</button></div>
+      <button class="btn m" id="bk" style="padding:10px 22px;font-size:.9rem">Confirm booking</button></div>
+    <div class="bx c3"><h3>Today’s medicines</h3><small>Sample reminders</small>
+      <div class="med"><label><input type="checkbox" checked><span>Vitamin D3, 8:00 AM</span></label><label><input type="checkbox"><span>Metformin, 1:30 PM</span></label><label><input type="checkbox"><span>Omega-3, 9:00 PM</span></label></div></div>
+    <div class="bx c6"><h3>Before and after</h3><small>Drag to compare a raw report line with PulseOS</small>
+      <div class="ba" id="ba"><div class="bef">HBA1C (NGSP) 5.4 % &nbsp; REF 4.0-5.6<br>EAG 108 mg/dL &nbsp; METHOD: HPLC<br>INTERP: NON-DIABETIC RANGE</div><div class="aft"><b>Your HbA1c is 5.4%.</b><br>That is in the normal range. It reflects your average blood sugar over the last three months. Ask your doctor how often to retest.</div><span class="h"></span><input type="range" min="5" max="95" value="50" aria-label="Compare before and after"></div></div>
+  </div>
+</div></section>
+
+<section class="s dk" id="security"><div class="w">
+  <h2>Built around your trust.</h2>
+  <div class="sec">
+    <div><h3>Private by design</h3><p>Reports are encrypted in transit and at rest, and only you can open them.</p></div>
+    <div><h3>You stay in control</h3><p>Export or delete everything, anytime, from one settings page.</p></div>
+    <div><h3>Clear about limits</h3><p>PulseOS explains results and never diagnoses. Urgent symptoms point you to care.</p></div>
+  </div>
+</div></section>
+
+<section class="s lt" id="faq"><div class="w" style="max-width:820px">
+  <h2>Questions, answered.</h2>
+  <div style="margin-top:32px">
+    <details><summary>Is PulseOS a replacement for my doctor?</summary><p>No. It helps you understand your reports and prepare better questions. Your doctor makes the decisions.</p></details>
+    <details><summary>What files can I upload?</summary><p>PDFs and photos of lab reports. Text is extracted, then explained value by value.</p></details>
+    <details><summary>Is the data on this page real?</summary><p>No. This is a design demo, and every value, doctor, and reminder is sample data.</p></details>
+    <details><summary>Can I delete my data?</summary><p>Yes. You can export or remove your reports and vitals at any time.</p></details>
+  </div>
+</div></section>
+
+<section id="cta">
+  <h2>Start with one report.</h2>
+  <p class="sub">Upload it and see what it says in under a minute.</p>
+  <div class="row"><a class="btn m" href="#demo">Try the demo</a><a class="btn g" href="https://github.com/CodeWidKrish" rel="noopener">View on GitHub</a></div>
+</section>
+</main>
+<footer>PulseOS is a demo and does not provide medical advice. All data shown is sample data.</footer>
+
+<div id="pal" role="dialog" aria-modal="true" aria-label="Command menu"><div><input id="pi" placeholder="Jump to…" aria-label="Search commands"><ul id="pl"></ul></div></div>
+<div id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)},$$=function(s){return [].slice.call(document.querySelectorAll(s))};
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+gsap.registerPlugin(ScrollTrigger);
+var lenis;if(!reduce&&window.Lenis){lenis=new Lenis({lerp:.1});lenis.on('scroll',ScrollTrigger.update);gsap.ticker.add(function(t){lenis.raf(t*1000)});gsap.ticker.lagSmoothing(0)}
+function go(h){var el=$(h);if(!el)return;lenis?lenis.scrollTo(el,{offset:-60}):el.scrollIntoView({behavior:reduce?'auto':'smooth'})}
+$$('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();go(a.getAttribute('href'))})});
+var tt;function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('on')},2600)}
+
+// 3D particle heart with cursor repel (shader)
+var cv=$('#c'),R=new THREE.WebGLRenderer({canvas:cv,alpha:true,antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
+var sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(45,1,.1,50);cam.position.z=7;
+var N=8000,P=new Float32Array(N*3),A=new Float32Array(N),k=0,tr=0;
+while(k<N&&tr<5e6){tr++;var x=Math.random()*2.4-1.2,y=Math.random()*2.4-1.2,z=Math.random()*2.6-1.3,a=x*x+2.25*y*y+z*z-1,f=a*a*a-x*x*z*z*z-.1125*y*y*z*z*z;
+ if(f<0&&f>-.035){P[k*3]=x*1.5;P[k*3+1]=z*1.5;P[k*3+2]=y*1.5;A[k]=Math.random();k++}}
+var g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('aR',new THREE.BufferAttribute(A,1));
+var U={uT:{value:0},uM:{value:new THREE.Vector2(99,99)},uC:{value:new THREE.Color(0xFF4D5E)},uO:{value:0},uS:{value:16},uP:{value:R.getPixelRatio()}};
+var mat=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+vertexShader:'uniform float uT,uS,uP;uniform vec2 uM;attribute float aR;varying float vA;void main(){vec4 w=modelMatrix*vec4(position,1.);vec2 d=w.xy-uM;float l=length(d);float f=smoothstep(1.4,0.,l);w.xy+=normalize(d+1e-4)*f*f*1.1;w.z+=f*.8*sin(aR*6.28+uT*3.);vec4 mv=viewMatrix*w;gl_Position=projectionMatrix*mv;gl_PointSize=uS*uP*(.6+aR*.8)/-mv.z;vA=.5+.5*aR;}',
+fragmentShader:'uniform vec3 uC;uniform float uO;varying float vA;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(uC*vA,(1.-d*2.)*uO);}'});
+var H=new THREE.Points(g,mat);sc.add(H);
+var pal=[new THREE.Color(0xFF4D5E),new THREE.Color(0x5EE1D2),new THREE.Color(0xFFB86B)];
+var st={x:0,y:-.9,s:1,ry:0,c:0,o:0},ms={x:0,y:0},desk=innerWidth>900;
+function rs(){R.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();desk=innerWidth>900}
+addEventListener('resize',rs);rs();
+addEventListener('pointermove',function(e){ms.x=e.clientX/innerWidth-.5;ms.y=e.clientY/innerHeight-.5;
+ var v=new THREE.Vector3(ms.x*2,-ms.y*2,.5).unproject(cam).sub(cam.position).normalize();U.uM.value.set(cam.position.x+v.x*(-cam.position.z/v.z),cam.position.y+v.y*(-cam.position.z/v.z))});
+var tmp=new THREE.Color();
+R.setAnimationLoop(function(){var t=performance.now()/1000,b=reduce?0:Math.pow(Math.max(0,Math.sin(t*4.6)),8)*.05;
+ U.uT.value=t;H.rotation.y=st.ry+(reduce?0:t*.18)+ms.x*.4;H.rotation.x=ms.y*.2;H.position.set(st.x,st.y,0);H.scale.setScalar(st.s*(1+b));
+ var i=Math.min(Math.floor(st.c),1);tmp.copy(pal[i]).lerp(pal[i+1],Math.min(st.c-i,1));U.uC.value.copy(tmp);U.uO.value=st.o;R.render(sc,cam)});
+
+// intro
+gsap.timeline({defaults:{ease:'expo.out'}}).from('.wd',{yPercent:115,duration:1.2,stagger:.08,delay:.15}).from(['#hs','#hr'],{opacity:0,y:18,duration:1,stagger:.12},'-=.7').to(st,{o:1,duration:1.6},.2).from(st,{s:.45,duration:2},.2);
+// hero -> story
+gsap.to(st,{x:desk?2.1:0,y:desk?0:1.25,s:desk?1:.68,ease:'none',immediateRender:false,scrollTrigger:{trigger:'#hero',start:'top top',end:'bottom top',scrub:true}});
+gsap.to('#hero > *:not(.trust)',{opacity:0,y:-40,ease:'none',scrollTrigger:{trigger:'#hero',start:'top top',end:'60% top',scrub:true}});
+var p=gsap.utils.toArray('.pn');
+gsap.timeline({scrollTrigger:{trigger:'#story',start:'top top',end:'+=300%',pin:true,scrub:.6},defaults:{ease:'none'}})
+ .to(st,{ry:Math.PI*2,c:2,duration:3},0).fromTo('.rail i',{scaleY:0},{scaleY:1,duration:3},0)
+ .to(p[0],{opacity:0,y:-28,duration:.35},.9).fromTo(p[1],{opacity:0,y:28},{opacity:1,y:0,duration:.35},1.1)
+ .to(p[1],{opacity:0,y:-28,duration:.35},1.9).fromTo(p[2],{opacity:0,y:28},{opacity:1,y:0,duration:.35},2.1);
+// fade heart out over opaque sections, back in at CTA
+gsap.fromTo(st,{o:1},{o:0,ease:'none',immediateRender:false,scrollTrigger:{trigger:'#demo',start:'top 90%',end:'top 55%',scrub:true}});
+ScrollTrigger.create({trigger:'#cta',start:'top 85%',end:'bottom bottom',onUpdate:function(s){st.o=Math.min(1,s.progress*3);st.x=0;st.y=-.3;st.s=1.15;st.c=2}});
+
+// streaming demo
+var run=$('#run'),out=$('#out'),busy=false;
+var txt='**Your results look mostly normal.** Hemoglobin and thyroid levels are in range. Your fasting glucose is slightly above the usual range, which is worth mentioning to your doctor. A repeat test and a short chat about diet and activity are common next steps. Ask: “Should I retest in three months?”';
+run.addEventListener('click',function(){if(busy)return;busy=true;out.textContent='';out.classList.add('cur');
+ $$('.v').forEach(function(v,i){v.classList.remove('on');setTimeout(function(){v.classList.add('on')},reduce?0:400+i*450)});
+ var w=txt.split(' '),i=0,h='';setTimeout(function(){(function nx(){if(i>=w.length){out.classList.remove('cur');busy=false;return}h+=(i?' ':'')+w[i++];out.innerHTML=h.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');setTimeout(nx,reduce?0:45)})()},reduce?0:1700)});
+
+// dashboard
+ScrollTrigger.create({trigger:'#app',start:'top 60%',once:true,onEnter:function(){var o={v:0};gsap.to('#rg',{strokeDashoffset:14,duration:1.6,ease:'power3.out'});gsap.to(o,{v:86,duration:1.6,ease:'power3.out',onUpdate:function(){$('#sc').textContent=Math.round(o.v)}});gsap.to('#ln',{strokeDashoffset:0,duration:1.6,ease:'power2.out'})}});
+var D=['M0,110 C60,90 90,120 150,85 S250,50 310,78 S420,110 480,62 S560,44 600,40','M0,60 C50,95 100,40 160,80 S260,110 320,70 S430,45 490,92 S560,100 600,84'],AV=[64,61];
+$$('.tg button').forEach(function(b){b.addEventListener('click',function(){$$('.tg button').forEach(function(x){x.setAttribute('aria-pressed',x===b)});var r=+b.dataset.r;$('#ln').setAttribute('d',D[r]);$('#av').textContent=AV[r];gsap.fromTo('#ln',{strokeDashoffset:1},{strokeDashoffset:0,duration:1,ease:'power2.out'})})});
+function grp(id){var bs=$$('#'+id+' button');bs.forEach(function(b){b.addEventListener('click',function(){bs.forEach(function(x){x.setAttribute('aria-pressed',x===b)})})})}grp('dr');grp('sl');
+$('#bk').addEventListener('click',function(){var d=$('#dr [aria-pressed=true]').textContent.split(' · ')[0],s=$('#sl [aria-pressed=true]').textContent;toast('Booked with '+d+', '+s+' (sample)')});
+var ba=$('#ba');ba.querySelector('input').addEventListener('input',function(e){ba.style.setProperty('--p',e.target.value+'%')});
+
+// command palette
+var pal$=$('#pal'),pi=$('#pi'),pl=$('#pl'),cmds=[['Try the demo','#demo'],['Open the dashboard','#app'],['Book a doctor','#book'],['Security','#security'],['Read the FAQ','#faq']];
+function rl(q){pl.innerHTML='';cmds.filter(function(c){return c[0].toLowerCase().indexOf(q.toLowerCase())>-1}).forEach(function(c,i){var li=document.createElement('li');li.textContent=c[0];if(!i)li.className='f';li.onclick=function(){cl();go(c[1])};pl.appendChild(li)})}
+function op(){pal$.classList.add('o');pi.value='';rl('');pi.focus()}function cl(){pal$.classList.remove('o')}
+$('#kb').onclick=op;pal$.addEventListener('click',function(e){if(e.target===pal$)cl()});
+pi.addEventListener('input',function(){rl(pi.value)});
+addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();op()}else if(e.key==='Escape')cl();else if(e.key==='Enter'&&pal$.classList.contains('o')){var f=pl.querySelector('li');if(f)f.click()}});
+})();
+</script>
+</body>
+</html>
