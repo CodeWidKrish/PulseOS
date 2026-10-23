@@ -1,0 +1,862 @@
+openapi: 3.1.0
+info:
+  title: PulseOS Health Companion API
+  version: 1.0.0
+  description: >
+    Production REST and streaming API for PulseOS — an AI health companion that translates
+    complex laboratory reports, vitals, and biometric data into calm, plain-language explanations.
+    Enforces strict ownership access control and token-based authentication.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development environment
+  - url: https://api.pulseos.health/api/v1
+    description: Production environment
+
+security:
+  - BearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: System Health & Uptime Probe
+      description: Unauthenticated health check endpoint for container orchestrators and status monitors.
+      security: []
+      responses:
+        '200':
+          description: Service is healthy and database is connected.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  version:
+                    type: string
+                    example: 1.0.0
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2026-10-23T10:00:00Z'
+
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Creates a new patient or practitioner account with Argon2id/Bcrypt password hashing.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /auth/login:
+    post:
+      summary: Authenticate user & issue tokens
+      description: Authenticates user credentials. Returns short-lived access token and sets HTTP-only refresh token cookie.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+      responses:
+        '200':
+          description: Authenticated successfully.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: refresh_token=eyJhbG...; Path=/api/v1/auth; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Exchanges a valid HTTP-only refresh token cookie for a new 15-minute access token.
+      security: []
+      responses:
+        '200':
+          description: New access token issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefreshResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/me:
+    get:
+      summary: Get active user profile
+      description: Returns profile metadata for the authenticated user.
+      responses:
+        '200':
+          description: Profile retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /reports:
+    post:
+      summary: Upload lab report document
+      description: >
+        Uploads a clinical lab report (PDF, PNG, or JPEG, max 10MB). Extracts text using pdfplumber 
+        or Tesseract OCR, parses structured biomarker rows, and links them to the authenticated patient.
+        Ownership rule: Created report strictly belongs to the authenticated user.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Diagnostic document file (PDF, PNG, JPG, max 10MB)
+      responses:
+        '201':
+          description: File parsed and structured successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDetailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '413':
+          description: File exceeds 10MB limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      summary: List user's lab reports
+      description: >
+        Returns a paginated list of reports uploaded by the authenticated user.
+        Ownership rule: Patients can only access their own uploaded reports.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated report list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportListResponse'
+
+  /reports/{id}:
+    get:
+      summary: Get report details
+      description: >
+        Retrieves a specific lab report, structured biomarkers, and generated AI explanations.
+        Ownership rule: Patients can only view their own reports. Returns 404 or 403 otherwise.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detailed report metadata and biomarker records.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /reports/{id}/explain:
+    get:
+      summary: Stream AI report explanation via SSE
+      description: >
+        Streams a plain-language AI explanation of the specified report over Server-Sent Events (SSE).
+        Emits token chunks in real time, flags critical values, and yields final structured questions.
+        Ownership rule: Accessible only by the patient who owns the report.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Server-Sent Events stream.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: >
+                  SSE Stream emitting event types:
+                  - event: init, data: {"status": "started", "biomarker_count": 8}
+                  - event: chunk, data: {"text": "Your Hemoglobin is within healthy range..."}
+                  - event: warning, data: {"urgent": true, "message": "Critical value detected..."}
+                  - event: done, data: {"explanation_id": "...", "model": "llama-3.3-70b-versatile"}
+                  - event: error, data: {"code": "LLM_TIMEOUT", "message": "Explanation paused"}
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /vitals:
+    post:
+      summary: Log a new vital metric
+      description: >
+        Records a vital reading (heart_rate, bp, glucose, or weight) with a timestamp.
+        Ownership rule: Recorded vitals are strictly attached to the authenticated user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VitalCreateRequest'
+      responses:
+        '201':
+          description: Vital logged successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VitalResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      summary: Query longitudinal vitals timeseries
+      description: >
+        Fetches historical vital measurements for 7-day or 30-day chart visualizations.
+        Ownership rule: Returns only the authenticated user's measurements.
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [heart_rate, bp, glucose, weight]
+        - name: range
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [7d, 30d]
+            default: 7d
+      responses:
+        '200':
+          description: List of historical vital measurements.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VitalResponse'
+
+  /vitals/summary:
+    get:
+      summary: Get vital averages & composite Health Score
+      description: >
+        Computes 7-day and 30-day metric averages, trends, and the deterministic 0–100 Health Score.
+        Ownership rule: Evaluated strictly over the authenticated patient's data.
+      responses:
+        '200':
+          description: Summary metrics and composite score.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VitalsSummaryResponse'
+
+  /doctors:
+    get:
+      summary: Browse physician directory
+      description: Retrieves list of active doctors with specialties and biographies. Open to all authenticated users.
+      responses:
+        '200':
+          description: List of doctors.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DoctorResponse'
+
+  /doctors/{id}/slots:
+    get:
+      summary: Retrieve doctor availability slots
+      description: Returns upcoming, unbooked calendar availability slots for the specified doctor.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of open availability slots.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvailabilitySlotResponse'
+
+  /appointments:
+    post:
+      summary: Book an appointment slot
+      description: >
+        Atomically books an open slot for the authenticated patient using transactional row locking.
+        Prevents double-booking via unique constraint and row lock.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreateRequest'
+      responses:
+        '201':
+          description: Appointment confirmed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '409':
+          description: Slot already booked by another user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: SLOT_ALREADY_BOOKED
+                  message: The requested appointment slot has already been reserved.
+                  details: []
+
+    get:
+      summary: List appointments
+      description: >
+        Lists appointments for the authenticated user. Patients view their bookings; doctors view scheduled visits.
+      responses:
+        '200':
+          description: List of appointments.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppointmentResponse'
+
+  /appointments/{id}:
+    delete:
+      summary: Cancel an appointment
+      description: >
+        Cancels a scheduled appointment and frees the associated calendar slot.
+        Ownership rule: Patients can cancel their own bookings; doctors can cancel visits with them.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Appointment successfully cancelled.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Appointment cancelled and slot reopened.
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - details
+          properties:
+            code:
+              type: string
+              example: RESOURCE_NOT_FOUND
+            message:
+              type: string
+              example: The requested resource could not be found.
+            details:
+              type: array
+              items:
+                type: string
+              example: []
+
+    UserRegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - full_name
+      properties:
+        email:
+          type: string
+          format: email
+          example: elena.rostova@sample.pulseos.health
+        password:
+          type: string
+          minLength: 8
+          example: PulseOS2026!
+        full_name:
+          type: string
+          example: Elena Rostova
+        role:
+          type: string
+          enum: [patient, doctor, admin]
+          default: patient
+
+    UserLoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: elena.rostova@sample.pulseos.health
+        password:
+          type: string
+          example: PulseOS2026!
+
+    AuthResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - user
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI...
+        token_type:
+          type: string
+          example: bearer
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    TokenRefreshResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI...
+        token_type:
+          type: string
+          example: bearer
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - email
+        - full_name
+        - role
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        full_name:
+          type: string
+        role:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    BiomarkerValue:
+      type: object
+      required:
+        - id
+        - test_name
+        - value
+        - unit
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        test_name:
+          type: string
+          example: Hemoglobin
+        value:
+          type: number
+          example: 14.2
+        unit:
+          type: string
+          example: g/dL
+        ref_low:
+          type: number
+          nullable: true
+          example: 12.0
+        ref_high:
+          type: number
+          nullable: true
+          example: 16.0
+        status:
+          type: string
+          enum: [normal, low, high]
+          example: normal
+
+    ReportDetailResponse:
+      type: object
+      required:
+        - id
+        - filename
+        - status
+        - values
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        filename:
+          type: string
+          example: bloodwork_2026.pdf
+        status:
+          type: string
+          example: parsed
+        extracted_text:
+          type: string
+          nullable: true
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/BiomarkerValue'
+        explanation:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            summary:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+            questions:
+              type: array
+              items:
+                type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ReportListResponse:
+      type: object
+      required:
+        - items
+        - total
+        - limit
+        - offset
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportDetailResponse'
+        total:
+          type: integer
+          example: 5
+        limit:
+          type: integer
+          example: 20
+        offset:
+          type: integer
+          example: 0
+
+    VitalCreateRequest:
+      type: object
+      required:
+        - type
+        - value_1
+      properties:
+        type:
+          type: string
+          enum: [heart_rate, bp, glucose, weight]
+          example: bp
+        value_1:
+          type: number
+          example: 120
+        value_2:
+          type: number
+          nullable: true
+          example: 80
+        recorded_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    VitalResponse:
+      type: object
+      required:
+        - id
+        - type
+        - value_1
+        - recorded_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          example: bp
+        value_1:
+          type: number
+          example: 120
+        value_2:
+          type: number
+          nullable: true
+          example: 80
+        recorded_at:
+          type: string
+          format: date-time
+
+    VitalsSummaryResponse:
+      type: object
+      required:
+        - health_score
+        - metrics
+      properties:
+        health_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 92
+        metrics:
+          type: object
+          properties:
+            heart_rate:
+              type: object
+              properties:
+                average:
+                  type: number
+                  example: 72.4
+                trend:
+                  type: string
+                  example: stable
+            bp:
+              type: object
+              properties:
+                average_systolic:
+                  type: number
+                  example: 119.5
+                average_diastolic:
+                  type: number
+                  example: 77.8
+                trend:
+                  type: string
+                  example: improving
+
+    DoctorResponse:
+      type: object
+      required:
+        - id
+        - name
+        - specialty
+        - bio
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Dr. Marcus Vance, MD
+        specialty:
+          type: string
+          example: Cardiology & Preventative Care
+        bio:
+          type: string
+          example: Board-certified cardiologist specializing in preventative wellness and metabolic health.
+
+    AvailabilitySlotResponse:
+      type: object
+      required:
+        - id
+        - doctor_id
+        - starts_at
+        - ends_at
+        - is_booked
+      properties:
+        id:
+          type: string
+          format: uuid
+        doctor_id:
+          type: string
+          format: uuid
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        is_booked:
+          type: boolean
+          example: false
+
+    AppointmentCreateRequest:
+      type: object
+      required:
+        - slot_id
+      properties:
+        slot_id:
+          type: string
+          format: uuid
+
+    AppointmentResponse:
+      type: object
+      required:
+        - id
+        - patient_id
+        - doctor_id
+        - slot_id
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient_id:
+          type: string
+          format: uuid
+        doctor_id:
+          type: string
+          format: uuid
+        slot_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: confirmed
+        created_at:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequestError:
+      description: Invalid request parameters or body.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: BAD_REQUEST
+              message: The provided request payload is malformed.
+              details: []
+
+    UnauthorizedError:
+      description: Authentication failed or token is missing/expired.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: TOKEN_EXPIRED
+              message: The access token has expired.
+              details: []
+
+    NotFoundError:
+      description: The requested resource does not exist or access is forbidden.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: NOT_FOUND
+              message: The requested resource was not found.
+              details: []
+
+    ConflictError:
+      description: Resource conflict or state collision.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: RESOURCE_CONFLICT
+              message: A resource with this identifier already exists.
+              details: []
+
+    ValidationError:
+      description: Field-level schema validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Input validation failed on one or more fields.
+              details: ["value_1 must be between 30 and 260 for heart_rate"]
