@@ -40,9 +40,10 @@ export function useLenis() {
       gsap.registerPlugin(ScrollTrigger);
 
       const lenis = new LenisClass({
-        lerp: 0.1,
-        wheelMultiplier: 1,
-        touchMultiplier: 1.2,
+        lerp: 0.08,
+        wheelMultiplier: 1.05,
+        touchMultiplier: 1.5,
+        smoothWheel: true,
       });
       lenisRef.current = lenis;
 
@@ -51,6 +52,9 @@ export function useLenis() {
       const tickerCallback = (time: number) => {
         lenis.raf(time * 1000);
       };
+
+      gsap.ticker.add(tickerCallback);
+      gsap.ticker.lagSmoothing(0);
 
       const handleAnchorClick = (e: MouseEvent) => {
         const target = e.target as HTMLElement | null;
@@ -62,7 +66,7 @@ export function useLenis() {
         if (el) {
           e.preventDefault();
           if (lenisRef.current && !reducedMotion) {
-            lenisRef.current.scrollTo(el as HTMLElement, { offset: -60 });
+            lenisRef.current.scrollTo(el as HTMLElement, { offset: -70 });
           } else {
             el.scrollIntoView({
               behavior: reducedMotion ? "auto" : "smooth",

@@ -61,6 +61,14 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link
+          rel="preload"
+          as="image"
+          href="/media/blood-flow-poster.jpg"
+          fetchPriority="high"
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-[#07090D] text-[#F2F4F7] antialiased selection:bg-[#FF4D5E]/30 selection:text-white">
         <div className="flex-1">{children}</div>
       </body>

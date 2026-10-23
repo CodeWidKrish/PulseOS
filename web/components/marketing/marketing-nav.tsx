@@ -39,20 +39,7 @@ export function MarketingNav({ onOpenCommandPalette }: MarketingNavProps) {
       className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 sm:px-8 lg:px-12 py-3 bg-[#07090D]/60 backdrop-blur-xl border-b border-white/6 transition-all duration-200"
       aria-label="Main Navigation"
     >
-      {/* Brand Wordmark with Heartbeat Dot */}
-      <Link
-        href="#hero"
-        onClick={(e) => handleLinkClick(e, "#hero")}
-        className="flex items-center gap-2.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2] rounded-lg px-2 py-1"
-      >
-        <span
-          className="w-2.5 h-2.5 rounded-full bg-[#FF4D5E] shadow-[0_0_12px_#FF4D5E] animate-[heartbeat_1.2s_infinite]"
-          aria-hidden="true"
-        />
-        <span className="font-semibold text-lg tracking-tight text-[#F2F4F7]">
-          Pulse<span className="text-[#8B93A1]">OS</span>
-        </span>
-      </Link>
+
 
       {/* Desktop Anchor Links */}
       <ul className="hidden md:flex items-center gap-7 list-none p-0 text-sm text-[#8B93A1]">

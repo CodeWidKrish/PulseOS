@@ -20,58 +20,17 @@ const DynamicToastContainer = dynamic(
   { ssr: false }
 );
 
-// Lazy-load WebGL particle canvas on desktop idle
-const DynamicParticleCanvas = dynamic(
-  () =>
-    import("./particle-canvas").then(
-      (mod) => mod.ParticleCanvas
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,rgba(255,77,94,0.14),transparent_65%)]"
-        aria-hidden="true"
-      />
-    ),
-  }
+// Lazy-load Background Heart (ElectricLogo) that persists across hero & story
+const DynamicScrollHeart = dynamic(
+  () => import("./scroll-heart").then((mod) => mod.ScrollHeart),
+  { ssr: false }
 );
 
 export function MarketingClientShell() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [canRenderCanvas, setCanRenderCanvas] = useState(false);
 
   // Initialize Lenis smooth scroll for precision mouse wheel on desktop
   useLenis();
-
-  // Desktop idle deferral for heavy 3D WebGL; mobile uses ambient CSS glow
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const isMobile = window.innerWidth < 768;
-    const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (isMobile || isReduced) return;
-
-    if ("requestIdleCallback" in window) {
-      const handle = (
-        window as unknown as {
-          requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number;
-        }
-      ).requestIdleCallback(() => setCanRenderCanvas(true), { timeout: 2500 });
-
-      return () => {
-        if ("cancelIdleCallback" in window) {
-          (
-            window as unknown as {
-              cancelIdleCallback: (id: number) => void;
-            }
-          ).cancelIdleCallback(handle);
-        }
-      };
-    } else {
-      const timer = setTimeout(() => setCanRenderCanvas(true), 1800);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   // Keyboard shortcut Ctrl+K / Cmd+K
   useEffect(() => {
@@ -88,15 +47,8 @@ export function MarketingClientShell() {
 
   return (
     <>
-      {/* 3D WebGL Particle Heart Canvas on Desktop / Static Gradient Fallback on Mobile & Low-Power */}
-      {canRenderCanvas ? (
-        <DynamicParticleCanvas />
-      ) : (
-        <div
-          className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,rgba(255,77,94,0.14),transparent_65%)]"
-          aria-hidden="true"
-        />
-      )}
+      {/* Background ElectricLogo Heart (replaces particle heart) */}
+      <DynamicScrollHeart />
 
       {/* Floating Translucent Navigation */}
       <MarketingNav onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
