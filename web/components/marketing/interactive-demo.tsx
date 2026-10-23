@@ -4,12 +4,15 @@ import React, { useState, useRef, useEffect } from "react";
 import { MARKETING_CONTENT } from "@/lib/content";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 
+import { useHeart } from "@/lib/heart-context";
+
 export function InteractiveDemo() {
   const [isBusy, setIsBusy] = useState(false);
   const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
   const [streamedText, setStreamedText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const reducedMotion = useReducedMotion();
+  const { beat, setBpm } = useHeart();
   const timeoutIdsRef = useRef<NodeJS.Timeout[]>([]);
 
   useEffect(() => {
@@ -25,6 +28,11 @@ export function InteractiveDemo() {
     timeoutIdsRef.current.forEach((id) => clearTimeout(id));
     timeoutIdsRef.current = [];
 
+    // Trigger strong double beat and elevate BPM to 84 while streaming
+    beat(2.0, false);
+    setTimeout(() => beat(1.5, true), 220);
+    setBpm(84);
+
     setIsBusy(true);
     setVisibleIndices([]);
     setStreamedText("");
@@ -36,6 +44,7 @@ export function InteractiveDemo() {
       setStreamedText(MARKETING_CONTENT.demo.explanationMarkdown);
       setIsStreaming(false);
       setIsBusy(false);
+      setBpm(72);
       return;
     }
 
@@ -57,6 +66,7 @@ export function InteractiveDemo() {
         if (currentWordIndex >= words.length) {
           setIsStreaming(false);
           setIsBusy(false);
+          setBpm(72);
           return;
         }
 

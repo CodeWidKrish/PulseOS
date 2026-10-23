@@ -4,8 +4,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { MARKETING_CONTENT } from "@/lib/content";
 import { toast } from "@/components/ui/toast";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { useHeart } from "@/lib/heart-context";
 
 export function BentoDashboard() {
+  const { bpm } = useHeart();
   const containerRef = useRef<HTMLElement | null>(null);
   const [isInView, setIsInView] = useState(false);
   const [heartRateRange, setHeartRateRange] = useState<"7" | "30">("7");
@@ -194,13 +196,13 @@ export function BentoDashboard() {
               </div>
             </div>
 
-            <div className="mt-4">
-              <span className="text-3xl font-bold tracking-tight text-[#0B0F15]">
-                {heartRateRange === "7"
-                  ? MARKETING_CONTENT.dashboard.heartRate.sevenDayAvg
-                  : MARKETING_CONTENT.dashboard.heartRate.thirtyDayAvg}
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="text-3xl font-bold tracking-tight text-[#0B0F15] tabular-nums">
+                {bpm}
               </span>
-              <span className="text-sm text-[#6B7280] ml-2">bpm average</span>
+              <span className="text-sm text-[#6B7280]">
+                bpm live · {heartRateRange === "7" ? "7d avg 71" : "30d avg 69"}
+              </span>
             </div>
 
             {/* SVG Line Graph */}
