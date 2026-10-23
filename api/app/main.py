@@ -1,6 +1,7 @@
 """
 PulseOS FastAPI Application
 """
+import contextlib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -17,11 +18,15 @@ from app.routers import appointments, auth, doctors, reports, vitals
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: create tables (alembic handles migrations in prod)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(f"[!] Note: Database startup ping deferred: {e}")
     yield
     # Shutdown: dispose engine
-    await engine.dispose()
+    with contextlib.suppress(Exception):
+        await engine.dispose()
 
 
 limiter = Limiter(key_func=get_remote_address)
