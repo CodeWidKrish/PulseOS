@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Coronary vessels: branching filled ribbons (thickness >= 5 units) on 512x512 -->
+  <g fill="#ffffff" stroke="none">
+    <!-- Main Left Anterior Descending (LAD) trunk -->
+    <path d="
+      M 242 160
+      C 245 195 240 230 232 265
+      C 224 300 215 338 206 375
+      C 200 400 196 422 192 440
+      L 198 441
+      C 202 422 207 399 213 374
+      C 222 336 231 298 239 263
+      C 247 229 252 194 248 160
+      Z
+    "/>
+    <!-- Diagonal Branch 1 (left ventricle wall) -->
+    <path d="
+      M 236 245
+      C 220 255 200 270 178 288
+      C 165 298 155 310 146 322
+      L 150 326
+      C 159 314 169 303 182 292
+      C 204 274 223 260 239 250
+      Z
+    "/>
+    <!-- Diagonal Branch 2 (lower left apex) -->
+    <path d="
+      M 218 330
+      C 202 345 186 364 172 384
+      L 177 388
+      C 190 368 206 349 222 334
+      Z
+    "/>
+    <!-- Right Marginal Branch -->
+    <path d="
+      M 240 205
+      C 265 220 295 242 322 272
+      C 340 292 355 315 368 338
+      L 373 334
+      C 360 310 344 287 326 266
+      C 298 236 268 214 243 199
+      Z
+    "/>
+    <!-- Circumflex Branch (curving along atrioventricular groove) -->
+    <path d="
+      M 248 175
+      C 278 180 312 195 340 218
+      C 358 232 372 250 382 270
+      L 387 266
+      C 376 245 362 226 343 212
+      C 314 188 279 174 247 169
+      Z
+    "/>
+  </g>
+</svg>

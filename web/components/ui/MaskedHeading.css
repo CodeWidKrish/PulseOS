@@ -51,7 +51,7 @@
   position: absolute;
   inset: 0;
   display: block;
-  background: radial-gradient(ellipse at center, #8A0303 0%, #3D0008 60%, #07090D 100%);
+  background: radial-gradient(ellipse at center, #FF2B47 0%, #C8082B 55%, #5E0013 100%);
   will-change: transform, filter;
 }
 

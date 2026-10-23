@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import type { CSSProperties } from 'react';
 import { Renderer, Program, Mesh, Triangle, Texture } from 'ogl';
 
@@ -17,6 +17,11 @@ const PULSES = 3;
 const PIXEL_BUDGET = 4e6;
 
 type Rgb = [number, number, number];
+
+export interface ElectricLogoHandle {
+  beat: (strength?: number) => void;
+  ripple: (x?: number, y?: number, strength?: number) => void;
+}
 
 export interface ElectricLogoProps {
   src?: string;
@@ -668,33 +673,46 @@ function checkWebGL2(): boolean {
   }
 }
 
-export const ElectricLogo = ({
-  src = BOLT,
-  color = '#FFD3D8',
-  glowColor = '#FF4D5E',
-  scale = 0.72,
-  intensity = 1,
-  glow = 1.2,
-  thickness = 1.5,
-  strands = 4,
-  bend = 0.6,
-  crackle = 1.2,
-  arcs = 1,
-  flicker = 0.4,
-  fill = 0.35,
-  speed = 1.6,
-  interactive = true,
-  cursorIntensity = 0.75,
-  cursorRadius = 120,
-  theme = 'dark',
-  onRender,
-  className = '',
-  style
-}: ElectricLogoProps) => {
+export const ElectricLogo = forwardRef<ElectricLogoHandle, ElectricLogoProps>(function ElectricLogo(
+  {
+    src = BOLT,
+    color = '#FFD3D8',
+    glowColor = '#FF4D5E',
+    scale = 0.72,
+    intensity = 1,
+    glow = 1.2,
+    thickness = 1.5,
+    strands = 4,
+    bend = 0.6,
+    crackle = 1.2,
+    arcs = 1,
+    flicker = 0.4,
+    fill = 0.35,
+    speed = 1.6,
+    interactive = true,
+    cursorIntensity = 0.75,
+    cursorRadius = 120,
+    theme = 'dark',
+    onRender,
+    className = '',
+    style
+  }: ElectricLogoProps,
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<Settings | null>(null);
   const shapeRef = useRef<Shape | null>(null);
   const [useFallback, setUseFallback] = useState(() => !checkWebGL2());
+  const actionsRef = useRef<ElectricLogoHandle | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    beat: (strength = 1) => {
+      actionsRef.current?.beat(strength);
+    },
+    ripple: (x, y, strength) => {
+      actionsRef.current?.ripple(x, y, strength);
+    }
+  }));
 
   useEffect(() => {
     settingsRef.current = {
@@ -1086,10 +1104,46 @@ export const ElectricLogo = ({
     });
     intersectionObserver.observe(container);
 
+    actionsRef.current = {
+      ripple: (x?: number, y?: number, strength = 1) => {
+        const rx = typeof x === 'number' ? x : width / 2;
+        const ry = typeof y === 'number' ? y : height / 2;
+        pulses.push({ x: rx, y: ry, born: performance.now() });
+        if (pulses.length > PULSES) pulses.shift();
+        burst = { x: rx, y: ry };
+        uniforms.uPulseBoost.value = Math.max(uniforms.uPulseBoost.value, 1.2 * strength);
+      },
+      beat: (strength = 1) => {
+        const cx = width / 2;
+        const cy = height / 2;
+        pulses.push({ x: cx, y: cy, born: performance.now() });
+        if (pulses.length > PULSES) pulses.shift();
+        burst = { x: cx, y: cy };
+        uniforms.uFlash.value = Math.max(uniforms.uFlash.value, 0.8 * strength);
+
+        const currentShape = slots[target].shape;
+        const s = settingsRef.current;
+        if (currentShape && s) {
+          const near = place(currentShape, s);
+          const focus = (spot: Point): Focus => ({
+            x: (spot.x - near.ox) / near.fit,
+            y: (spot.y - near.oy) / near.fit,
+            radius: Math.max(1, s.cursorRadius) / near.fit
+          });
+          const count = Math.min(Math.round(2 * strength), 3);
+          for (let i = 0; i < count && sparks.length < ARCS; i++) {
+            const spark = spawnArc(currentShape, time, focus({ x: cx, y: cy }));
+            if (spark) sparks.push(spark);
+          }
+        }
+      }
+    };
+
     resize();
     start();
 
     return () => {
+      actionsRef.current = null;
       visible = false;
       cancelAnimationFrame(raf);
       resizeObserver.disconnect();
@@ -1113,10 +1167,10 @@ export const ElectricLogo = ({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={src || BOLT}
+          src={src || '/media/heart-anatomy.svg'}
           alt=""
           aria-hidden="true"
-          className="electric-logo__fallback-img"
+          className="electric-logo__fallback-img animate-[pulse_1.2s_ease-in-out_infinite]"
           style={{
             width: `${Math.round(scale * 100)}%`,
             height: `${Math.round(scale * 100)}%`,
@@ -1137,6 +1191,6 @@ export const ElectricLogo = ({
       aria-hidden="true"
     />
   );
-};
+});
 
 export default ElectricLogo;
