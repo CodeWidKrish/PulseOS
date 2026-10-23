@@ -5,7 +5,7 @@ export function SecuritySection() {
   return (
     <section
       id="security"
-      className="relative z-20 py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-[#07090D] border-t border-white/6"
+      className="relative z-20 py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-transparent border-t border-white/6"
       aria-label="Security and Privacy"
     >
       <div className="max-w-[1200px] mx-auto">

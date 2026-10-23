@@ -21,19 +21,17 @@ export function ScrollHeart() {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const tiltRef = useRef<HTMLDivElement | null>(null);
   const outlineRef = useRef<ElectricLogoHandle | null>(null);
-  const vesselsRef = useRef<ElectricLogoHandle | null>(null);
 
   const reducedMotion = useReducedMotion();
-  const { bpm, setBpm, subscribeBeat, soundEnabled, setSoundEnabled } = useHeart();
+  const { bpm, setBpm, subscribeBeat } = useHeart();
 
-  // State
+  // Dynamic state
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [color, setColor] = useState("#FFD3D8");
   const [glowColor, setGlowColor] = useState("#FF4D5E");
-  const [isMounted, setIsMounted] = useState(true);
-  const [isInteractive, setIsInteractive] = useState(true);
-  const [isHeroVisible, setIsHeroVisible] = useState(true);
+  const [isHeroHovered, setIsHeroHovered] = useState(false);
 
-  // Dynamic interactive feedback: hold-to-charge
+  // Dynamic interactive feedback: hold-to-charge in hero
   const [glowMultiplier, setGlowMultiplier] = useState(1.0);
   const [cursorIntensity, setCursorIntensity] = useState(0.75);
 
@@ -41,27 +39,52 @@ export function ScrollHeart() {
   const chargeIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isChargingRef = useRef(false);
 
-  // Biological heartbeat rhythm (72 BPM lub-dub) with GSAP scale
+  // Persistent Biological heartbeat rhythm (lub-dub) active throughout whole page
   useHeartbeat({
     wrapperRef: tiltRef,
-    isHeroVisible,
+    active: true,
     onGlowPulse: (strength) => {
-      // Glow pulse on beat
       outlineRef.current?.beat(strength);
-      vesselsRef.current?.beat(strength * 0.7);
     },
   });
 
-  // Keep beat subscribers updated
+  // Keep beat subscribers synchronized
   useEffect(() => {
     const unsubscribe = subscribeBeat((strength = 1) => {
       outlineRef.current?.beat(strength);
-      vesselsRef.current?.beat(strength * 0.7);
     });
     return unsubscribe;
   }, [subscribeBeat]);
 
-  // Spring cursor tilt & velocity response
+  // Pointer-events: none everywhere except over hero
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const heroEl = document.getElementById("hero");
+    if (!heroEl) return;
+
+    const handlePointerEnter = () => setIsHeroHovered(true);
+    const handlePointerLeave = () => setIsHeroHovered(false);
+
+    heroEl.addEventListener("pointerenter", handlePointerEnter);
+    heroEl.addEventListener("pointerleave", handlePointerLeave);
+
+    const handleScroll = () => {
+      const heroRect = heroEl.getBoundingClientRect();
+      if (heroRect.bottom <= 0 || heroRect.top >= window.innerHeight) {
+        setIsHeroHovered(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      heroEl.removeEventListener("pointerenter", handlePointerEnter);
+      heroEl.removeEventListener("pointerleave", handlePointerLeave);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  // Spring cursor tilt & velocity response (Hero only, disabled on reduced motion)
   useEffect(() => {
     if (reducedMotion || typeof window === "undefined") return;
 
@@ -71,7 +94,7 @@ export function ScrollHeart() {
     let velocityDamp = 0;
 
     const handlePointerMove = (e: PointerEvent) => {
-      if (e.pointerType === "touch" || !tiltRef.current || !isHeroVisible) return;
+      if (e.pointerType === "touch" || !tiltRef.current || !isHeroHovered) return;
 
       const now = performance.now();
       const dt = Math.max(1, now - lastTime);
@@ -89,15 +112,15 @@ export function ScrollHeart() {
         outlineRef.current?.beat(0.4);
       }
 
-      // Cursor tilt spring: rotateX/rotateY up to 10deg, translate up to 12px
+      // Cursor tilt spring: rotateX/rotateY up to 8deg, translate up to 10px
       const nx = (e.clientX / window.innerWidth) * 2 - 1;
       const ny = (e.clientY / window.innerHeight) * 2 - 1;
 
       gsap.to(tiltRef.current, {
-        rotateY: nx * 10,
-        rotateX: -ny * 10,
-        x: nx * 12,
-        y: ny * 12,
+        rotateY: nx * 8,
+        rotateX: -ny * 8,
+        x: nx * 10,
+        y: ny * 10,
         duration: 0.5,
         ease: "power2.out",
         overwrite: "auto",
@@ -123,15 +146,14 @@ export function ScrollHeart() {
       window.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("mouseleave", handlePointerLeave);
     };
-  }, [reducedMotion, isHeroVisible]);
+  }, [reducedMotion, isHeroHovered]);
 
-  // Hold-to-charge and release interaction
+  // Hold-to-charge and release interaction in Hero
   const startCharge = useCallback(() => {
-    if (reducedMotion) return;
+    if (reducedMotion || !isHeroHovered) return;
     isChargingRef.current = true;
     chargeStartTimeRef.current = performance.now();
 
-    // Gradually elevate BPM from current to 120 and raise intensity
     const startBpm = bpm;
     const startTime = performance.now();
 
@@ -147,12 +169,11 @@ export function ScrollHeart() {
       setGlowMultiplier(1 + progress * 0.9);
       setCursorIntensity(0.75 + progress * 0.75);
 
-      // Pulse micro-ripples as it charges
       if (Math.random() < 0.25) {
         outlineRef.current?.beat(0.6 * (1 + progress));
       }
     }, 50);
-  }, [bpm, setBpm, reducedMotion]);
+  }, [bpm, setBpm, reducedMotion, isHeroHovered]);
 
   const endCharge = useCallback(() => {
     if (!isChargingRef.current) return;
@@ -170,7 +191,6 @@ export function ScrollHeart() {
     if (duration > 300) {
       // Powerful discharge sequence
       outlineRef.current?.ripple(undefined, undefined, 2.5);
-      vesselsRef.current?.ripple(undefined, undefined, 2.0);
 
       // Strong double beat
       outlineRef.current?.beat(2.4);
@@ -205,14 +225,13 @@ export function ScrollHeart() {
         }
       }, 50);
     } else {
-      // Quick click: standard ripple
       outlineRef.current?.ripple();
       setGlowMultiplier(1.0);
       setCursorIntensity(0.75);
     }
   }, [bpm, setBpm]);
 
-  // GSAP ScrollTrigger story integration
+  // Master GSAP Timeline across entire page scroll + Background cross-fade
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -233,96 +252,311 @@ export function ScrollHeart() {
 
         const isDesktop = window.innerWidth >= 900;
 
-        // 1. Hero to Story: Move heart to the right on desktop (~22vw) or centered above text on mobile, scale to 0.85
-        gsap.to(wrapper, {
-          x: isDesktop ? "22vw" : "0vw",
-          y: isDesktop ? "0svh" : "-10svh",
-          scale: 0.85,
-          ease: "none",
+        // Keyframe definitions matching prompt specifications:
+        // Hero: centered, large (scale 1), anatomy fully visible, behind headline and below CTAs
+        // Story: move right on desktop (x ~22vw) or above text on mobile, scale 0.85
+        // Demo: small (scale 0.45), left side, calm
+        // Dashboard: small (scale 0.4), top-right, switch theme to 'light' (crisp electric ink)
+        // Security: back to dark theme, center, scale 0.7, slow
+        // FAQ: theme 'light', scale 0.35, right edge
+        // Closing CTA: dark theme, centered, scale 1.1, beating strongly
+        // Footer: heart settles at bottom of viewport, scale 0.6, final slow beat. At 100% still fully visible.
+
+        const masterTl = gsap.timeline({
           scrollTrigger: {
-            trigger: "#hero",
+            trigger: document.documentElement,
             start: "top top",
-            end: "bottom top",
-            scrub: true,
-            onLeave: () => {
-              setIsInteractive(false);
-              setIsHeroVisible(false);
-            },
-            onEnterBack: () => {
-              setIsInteractive(true);
-              setIsHeroVisible(true);
-            },
+            end: "bottom bottom",
+            scrub: reducedMotion ? false : 0.8,
           },
         });
 
-        // 2. Story Panels: 3D tilt rotateY (-12deg to 12deg) and color state transitions
-        gsap.fromTo(
-          tilt,
-          { rotateY: -12 },
-          {
-            rotateY: 12,
-            ease: "none",
-            scrollTrigger: {
-              trigger: "#story",
-              start: "top top",
-              end: "+=300%",
-              scrub: 0.6,
-              onUpdate: (self) => {
-                const p = self.progress;
-                if (p < 0.33) {
-                  setColor("#FFD3D8");
-                  setGlowColor("#FF4D5E");
-                } else if (p < 0.66) {
-                  setColor("#D4FFF9");
-                  setGlowColor("#5EE1D2");
-                } else {
-                  setColor("#FFE6C2");
-                  setGlowColor("#FFB86B");
-                }
-              },
+        // 1. Hero (0 to 1.0) -> Story
+        masterTl
+          .fromTo(
+            wrapper,
+            {
+              x: "0vw",
+              y: "0svh",
+              scale: isDesktop ? 1.0 : 0.95,
+              opacity: 1,
             },
-          }
-        );
+            {
+              x: isDesktop ? "22vw" : "0vw",
+              y: isDesktop ? "0svh" : "-18svh",
+              scale: isDesktop ? 0.85 : 0.75,
+              opacity: 1,
+              duration: 1.0,
+              ease: "power1.inOut",
+            }
+          )
+          // 2. Story Panels hold (1.0 to 4.0) with subtle 3D tilt rotateY
+          .to(
+            wrapper,
+            {
+              x: isDesktop ? "22vw" : "0vw",
+              y: isDesktop ? "0svh" : "-18svh",
+              scale: isDesktop ? 0.85 : 0.75,
+              opacity: 1,
+              duration: 3.0,
+              ease: "none",
+            }
+          );
 
-        // 3. Fade out before light dashboard section (#app) and unmount to save GPU time
-        gsap.to(wrapper, {
-          opacity: 0,
-          scale: 0.75,
+        // Subtle 3D tilt across story panels
+        if (!reducedMotion) {
+          masterTl.fromTo(
+            tilt,
+            { rotateY: -10 },
+            { rotateY: 10, duration: 3.0, ease: "none" },
+            1.0
+          );
+        }
+
+        // 3. Story -> Demo: small (scale 0.45), left side, calm
+        masterTl.to(wrapper, {
+          x: isDesktop ? "-26vw" : "-18vw",
+          y: isDesktop ? "4svh" : "-12svh",
+          scale: isDesktop ? 0.45 : 0.4,
+          opacity: 1,
+          duration: 1.2,
           ease: "power2.inOut",
-          scrollTrigger: {
-            trigger: "#demo",
-            start: "top 60%",
-            end: "bottom 30%",
-            scrub: true,
-            onLeave: () => {
-              setIsMounted(false);
-            },
-            onEnterBack: () => {
-              setIsMounted(true);
-            },
-          },
         });
 
-        // 4. Remount when approaching closing CTA (#cta)
+        // 4. Demo -> Dashboard: small (scale 0.4), top-right
+        masterTl.to(wrapper, {
+          x: isDesktop ? "28vw" : "20vw",
+          y: isDesktop ? "-20svh" : "-22svh",
+          scale: isDesktop ? 0.4 : 0.35,
+          opacity: 0.92,
+          duration: 1.6,
+          ease: "power2.inOut",
+        });
+
+        // 5. Dashboard -> Security: back to dark, center, scale 0.7, slow
+        masterTl.to(wrapper, {
+          x: "0vw",
+          y: "0svh",
+          scale: isDesktop ? 0.7 : 0.6,
+          opacity: 1,
+          duration: 1.2,
+          ease: "power2.inOut",
+        });
+
+        // 6. Security -> FAQ: theme 'light', scale 0.35, right edge
+        masterTl.to(wrapper, {
+          x: isDesktop ? "30vw" : "22vw",
+          y: isDesktop ? "6svh" : "-10svh",
+          scale: isDesktop ? 0.35 : 0.32,
+          opacity: 0.92,
+          duration: 1.2,
+          ease: "power2.inOut",
+        });
+
+        // 7. FAQ -> Closing CTA: dark theme, centered, scale 1.1, beating strongly
+        masterTl.to(wrapper, {
+          x: "0vw",
+          y: "-4svh",
+          scale: isDesktop ? 1.1 : 1.0,
+          opacity: 1,
+          duration: 1.0,
+          ease: "power2.out",
+        });
+
+        // 8. Closing CTA -> Footer: heart settles at bottom of viewport, scale 0.6, fully visible
+        masterTl.to(wrapper, {
+          x: "0vw",
+          y: isDesktop ? "22svh" : "20svh",
+          scale: isDesktop ? 0.6 : 0.55,
+          opacity: 1,
+          duration: 0.6,
+          ease: "power1.out",
+        });
+
+        // Section Triggers for Themes, Background Color Cross-fade, and BPM states
+        const setBg = (bgHex: string) => {
+          gsap.to("#fixed-page-bg", {
+            backgroundColor: bgHex,
+            duration: 0.45,
+            ease: "power2.out",
+            overwrite: "auto",
+          });
+        };
+
+        // Hero
         ScrollTrigger.create({
-          trigger: "#cta",
-          start: "top 95%",
-          end: "bottom bottom",
+          trigger: "#hero",
+          start: "top top",
+          end: "bottom top",
           onEnter: () => {
-            setIsMounted(true);
+            setTheme("dark");
             setColor("#FFD3D8");
             setGlowColor("#FF4D5E");
-            gsap.to(wrapper, {
-              x: 0,
-              y: "-5svh",
-              scale: 0.95,
-              opacity: 0.9,
-              duration: 0.8,
-              ease: "power3.out",
-            });
+            setBpm(72);
+            setBg("#07090D");
+          },
+          onEnterBack: () => {
+            setTheme("dark");
+            setColor("#FFD3D8");
+            setGlowColor("#FF4D5E");
+            setBpm(72);
+            setBg("#07090D");
+          },
+        });
+
+        // Story 3 panels: step colors red -> teal -> amber
+        ScrollTrigger.create({
+          trigger: "#story",
+          start: "top top",
+          end: "+=300%",
+          onEnter: () => {
+            setTheme("dark");
+            setBg("#07090D");
+          },
+          onUpdate: (self) => {
+            const p = self.progress;
+            if (p < 0.33) {
+              setColor("#FFD3D8");
+              setGlowColor("#FF4D5E");
+            } else if (p < 0.66) {
+              setColor("#D4FFF9");
+              setGlowColor("#5EE1D2");
+            } else {
+              setColor("#FFE6C2");
+              setGlowColor("#FFB86B");
+            }
           },
           onLeaveBack: () => {
-            setIsMounted(false);
+            setTheme("dark");
+            setColor("#FFD3D8");
+            setGlowColor("#FF4D5E");
+            setBg("#07090D");
+          },
+        });
+
+        // Demo (calm)
+        ScrollTrigger.create({
+          trigger: "#demo",
+          start: "top 60%",
+          end: "bottom 30%",
+          onEnter: () => {
+            setTheme("dark");
+            setColor("#FFD3D8");
+            setGlowColor("#FF4D5E");
+            setBpm(68);
+            setBg("#07090D");
+          },
+          onEnterBack: () => {
+            setTheme("dark");
+            setColor("#FFD3D8");
+            setGlowColor("#FF4D5E");
+            setBpm(68);
+            setBg("#07090D");
+          },
+        });
+
+        // Dashboard (#app): light theme (crisp electric ink) & background cross-fades to mist #F4F5F7
+        ScrollTrigger.create({
+          trigger: "#app",
+          start: "top 60%",
+          end: "bottom 30%",
+          onEnter: () => {
+            setTheme("light");
+            setColor("#1E2530");
+            setGlowColor("#FF4D5E");
+            setBpm(72);
+            setBg("#F4F5F7");
+          },
+          onLeaveBack: () => {
+            setTheme("dark");
+            setColor("#FFD3D8");
+            setGlowColor("#FF4D5E");
+            setBpm(68);
+            setBg("#07090D");
+          },
+        });
+
+        // Security: back to dark theme, slow beat
+        ScrollTrigger.create({
+          trigger: "#security",
+          start: "top 60%",
+          end: "bottom 30%",
+          onEnter: () => {
+            setTheme("dark");
+            setColor("#D4FFF9");
+            setGlowColor("#5EE1D2");
+            setBpm(64);
+            setBg("#07090D");
+          },
+          onLeaveBack: () => {
+            setTheme("light");
+            setColor("#1E2530");
+            setGlowColor("#FF4D5E");
+            setBpm(72);
+            setBg("#F4F5F7");
+          },
+        });
+
+        // FAQ: theme 'light' & background mist #F4F5F7
+        ScrollTrigger.create({
+          trigger: "#faq",
+          start: "top 60%",
+          end: "bottom 30%",
+          onEnter: () => {
+            setTheme("light");
+            setColor("#1E2530");
+            setGlowColor("#FF4D5E");
+            setBpm(68);
+            setBg("#F4F5F7");
+          },
+          onLeaveBack: () => {
+            setTheme("dark");
+            setColor("#D4FFF9");
+            setGlowColor("#5EE1D2");
+            setBpm(64);
+            setBg("#07090D");
+          },
+        });
+
+        // Closing CTA: dark theme, strong beat
+        ScrollTrigger.create({
+          trigger: "#cta",
+          start: "top 60%",
+          end: "bottom bottom",
+          onEnter: () => {
+            setTheme("dark");
+            setColor("#FFD3D8");
+            setGlowColor("#FF4D5E");
+            setBpm(84);
+            setBg("#07090D");
+          },
+          onLeaveBack: () => {
+            setTheme("light");
+            setColor("#1E2530");
+            setGlowColor("#FF4D5E");
+            setBpm(68);
+            setBg("#F4F5F7");
+          },
+        });
+
+        // Footer: final slow beat, dark theme, settled at bottom
+        ScrollTrigger.create({
+          trigger: "footer",
+          start: "top bottom",
+          end: "bottom bottom",
+          onEnter: () => {
+            setTheme("dark");
+            setColor("#FFD3D8");
+            setGlowColor("#FF4D5E");
+            setBpm(60);
+            setBg("#07090D");
+          },
+          onLeaveBack: () => {
+            setTheme("dark");
+            setColor("#FFD3D8");
+            setGlowColor("#FF4D5E");
+            setBpm(84);
+            setBg("#07090D");
           },
         });
       });
@@ -332,106 +566,53 @@ export function ScrollHeart() {
       isCancelled = true;
       if (ctx) ctx.revert();
     };
-  }, []);
+  }, [reducedMotion, setBpm]);
 
   return (
-    <>
-      {/* Sound Toggle (Acoustic Web Audio Lub-Dub, off by default) */}
-      <div className="fixed top-3.5 right-24 sm:right-32 z-50 pointer-events-auto">
-        <button
-          type="button"
-          onClick={() => setSoundEnabled((prev) => !prev)}
-          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full border transition-all ${
-            soundEnabled
-              ? "bg-[#FF4D5E]/15 border-[#FF4D5E]/40 text-[#FF4D5E] shadow-[0_0_12px_rgba(255,77,94,0.3)]"
-              : "bg-white/[0.04] border-white/10 text-[#8B93A1] hover:text-[#F2F4F7]"
-          }`}
-          aria-label={soundEnabled ? "Mute heartbeat audio" : "Enable heartbeat audio"}
-          aria-pressed={soundEnabled}
-        >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {soundEnabled ? (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H2v-6h3.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l4-4m0 0l-4-4m4 4H13" />
-            )}
-          </svg>
-          <span className="hidden sm:inline font-mono text-[11px]">{bpm} BPM</span>
-        </button>
-      </div>
-
-      {/* Anatomical Heart Wrapper: Positioned across upper headline & below CTAs */}
+    <div
+      ref={wrapperRef}
+      className="fixed inset-x-0 top-0 w-full h-[100svh] z-[1] flex items-center justify-center transition-opacity duration-300 pointer-events-none"
+      style={{
+        perspective: "1000px",
+        pointerEvents: isHeroHovered ? "auto" : "none",
+      }}
+      aria-hidden="true"
+      onPointerDown={startCharge}
+      onPointerUp={endCharge}
+      onPointerCancel={endCharge}
+    >
       <div
-        ref={wrapperRef}
-        className="fixed inset-x-0 top-[10svh] z-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none"
+        ref={tiltRef}
+        className="relative w-full h-full max-w-[900px] flex items-center justify-center pointer-events-none"
         style={{
-          height: "76svh",
-          perspective: "1000px",
-          pointerEvents: isInteractive ? "auto" : "none",
-          visibility: isMounted ? "visible" : "hidden",
+          transformStyle: "preserve-3d",
+          willChange: "transform",
+          pointerEvents: isHeroHovered ? "auto" : "none",
         }}
-        aria-hidden="true"
-        onPointerDown={startCharge}
-        onPointerUp={endCharge}
-        onPointerCancel={endCharge}
       >
-        <div
-          ref={tiltRef}
-          className="relative w-full h-full max-w-[850px] flex items-center justify-center"
-          style={{
-            transformStyle: "preserve-3d",
-            willChange: "transform",
-          }}
-        >
-          {isMounted ? (
-            <>
-              {/* Layer 1: Anatomical Heart Outline & Chambers */}
-              <DynamicElectricLogo
-                ref={outlineRef}
-                src="/media/heart-anatomy.svg"
-                color={color}
-                glowColor={glowColor}
-                scale={0.72}
-                strands={4}
-                bend={0.6}
-                crackle={1.2}
-                arcs={1}
-                thickness={1.5}
-                glow={1.3 * glowMultiplier}
-                fill={0.5}
-                flicker={0.4}
-                speed={1.6}
-                interactive={isInteractive}
-                cursorIntensity={cursorIntensity}
-                cursorRadius={120}
-                theme="dark"
-                className="absolute inset-0"
-              />
-
-              {/* Layer 2: Branching Coronary Blood Vessels */}
-              <DynamicElectricLogo
-                ref={vesselsRef}
-                src="/media/heart-vessels.svg"
-                color="#FFB3BC"
-                glowColor="#C81E3A"
-                scale={0.72}
-                strands={2}
-                thickness={1}
-                glow={0.8 * glowMultiplier}
-                crackle={0.8}
-                arcs={0}
-                fill={0}
-                speed={1.6}
-                intensity={0.8}
-                interactive={false}
-                theme="dark"
-                className="absolute inset-0 pointer-events-none"
-              />
-            </>
-          ) : null}
-        </div>
+        <DynamicElectricLogo
+          ref={outlineRef}
+          src="/media/heart-plain.svg"
+          color={color}
+          glowColor={glowColor}
+          scale={0.72}
+          strands={4}
+          bend={0.6}
+          crackle={1.2}
+          arcs={1}
+          thickness={1.5}
+          glow={1.3 * glowMultiplier}
+          fill={0.5}
+          flicker={0.4}
+          speed={1.6}
+          interactive={isHeroHovered}
+          cursorIntensity={cursorIntensity}
+          cursorRadius={120}
+          theme={theme}
+          className="absolute inset-0"
+        />
       </div>
-    </>
+    </div>
   );
 }
 
