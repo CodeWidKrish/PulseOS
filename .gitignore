@@ -1,0 +1,71 @@
+# ========================
+# Node / Next.js
+# ========================
+node_modules/
+.next/
+out/
+dist/
+.vercel/
+*.tsbuildinfo
+
+# ========================
+# Python / FastAPI
+# ========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+pip-wheel-metadata/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# ========================
+# Secrets & Env
+# ========================
+.env
+.env.local
+.env.production
+.env.*.local
+!.env.example
+
+# ========================
+# Uploads (never commit real health data)
+# ========================
+uploads/
+*.pdf
+*.jpg
+*.jpeg
+*.png
+!public/**
+
+# ========================
+# Docker
+# ========================
+*.log
+
+# ========================
+# OS
+# ========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================
+# IDE
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
