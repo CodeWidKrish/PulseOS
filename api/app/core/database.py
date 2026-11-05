@@ -6,9 +6,8 @@ from app.core.config import settings
 engine = create_async_engine(
     settings.database_url,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
-    echo=settings.app_env == "development",
+    **({} if settings.database_url.startswith("sqlite") else {"pool_size": 10, "max_overflow": 20}),
+    echo=False,
 )
 
 AsyncSessionLocal = async_sessionmaker(
