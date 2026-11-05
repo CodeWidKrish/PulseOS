@@ -27,6 +27,9 @@ def _make_tokens(user: User) -> TokenResponse:
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
+    if body.role != "patient":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only patient registration is public")
+
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none():
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")

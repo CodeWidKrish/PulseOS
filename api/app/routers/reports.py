@@ -4,8 +4,9 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
 from app.core.deps import get_current_user, get_db
@@ -106,69 +107,78 @@ async def explain_report(
     Server-Sent Events stream. Parses the report, calls Groq, streams tokens.
     The client reads 'data: {...}\\n\\n' events until 'data: [DONE]\\n\\n'.
     """
-    # Load report (ownership check)
     result = await db.execute(
         select(Report).where(Report.id == report_id, Report.user_id == current_user.id)
+        .with_for_update()
     )
     report = result.scalar_one_or_none()
     if not report:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Report not found")
 
-    # Parse text (or extract if not done yet)
-    if not report.extracted_text:
-        report.extracted_text = extract_text(report.storage_path)
-        report.status = ReportStatus.processing
-        await db.commit()
-
-    lab_values = parse_lab_values(report.extracted_text or "")
-
-    # Save parsed values
-    if lab_values and report.status != ReportStatus.done:
-        for lv in lab_values:
-            db.add(ReportValue(
-                report_id=report.id,
-                test_name=lv.test_name,
-                value=lv.value,
-                unit=lv.unit,
-                ref_low=lv.ref_low,
-                ref_high=lv.ref_high,
-                status=lv.status,
-            ))
-        await db.commit()
-
-    ai_service = get_ai_service()
-    full_text: list[str] = []
+    saved = await db.scalar(
+        select(ReportExplanation).where(ReportExplanation.report_id == report_id)
+    )
+    cached_text = None
+    if saved:
+        cached_text = saved.details.get("full_text", saved.summary)
+    else:
+        try:
+            extracted = report.extracted_text or await run_in_threadpool(
+                extract_text, report.storage_path
+            )
+        except Exception:
+            raise HTTPException(422, "Could not read the report. Try a clearer file.") from None
+        lab_values = parse_lab_values(extracted)
+        if not lab_values:
+            raise HTTPException(422, "No readable results with reference ranges were found.")
+        report.extracted_text = extracted
+        await db.execute(delete(ReportValue).where(ReportValue.report_id == report_id))
+        db.add_all([
+            ReportValue(
+                report_id=report_id, test_name=value.test_name, value=value.value,
+                unit=value.unit, ref_low=value.ref_low, ref_high=value.ref_high,
+                status=value.status,
+            )
+            for value in lab_values
+        ])
+    await db.commit()
+    bind = db.bind
 
     async def event_stream():
-        try:
-            async for token in ai_service.stream_explanation(lab_values):
-                full_text.append(token)
-                yield f"data: {json.dumps({'token': token})}\n\n"
+        if cached_text is not None:
+            yield f"data: {json.dumps({'token': cached_text})}\n\n"
+        else:
+            try:
+                chunks = []
+                async for token in get_ai_service().stream_explanation(lab_values):
+                    chunks.append(token)
+                    yield f"data: {json.dumps({'token': token})}\n\n"
+                complete = "".join(chunks)
+                if not complete.strip():
+                    raise ValueError("Empty explanation")
 
-            # Persist the full explanation after streaming completes
-            complete = "".join(full_text)
-            explanation = ReportExplanation(
-                report_id=report.id,
-                summary=complete[:500],  # first 500 chars as summary
-                details={"full_text": complete},
-                questions=[],  # parsed from text in a later enhancement
-                model=settings.groq_model,
-            )
-            db.add(explanation)
-            report.status = ReportStatus.done
-            await db.commit()
-
-            yield f"data: {json.dumps({'done': True})}\n\n"
-        except Exception as e:
-            report.status = ReportStatus.error
-            await db.commit()
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                async with AsyncSession(bind, expire_on_commit=False) as session:
+                    locked = await session.get(Report, report_id, with_for_update=True)
+                    if locked is None:
+                        raise ValueError("Report no longer exists")
+                    existing = await session.scalar(
+                        select(ReportExplanation).where(ReportExplanation.report_id == report_id)
+                    )
+                    if existing is None:
+                        session.add(ReportExplanation(
+                            report_id=report_id, summary=complete[:500],
+                            details={"full_text": complete}, questions=[],
+                            model=settings.groq_model,
+                        ))
+                    locked.status = ReportStatus.done
+                    await session.commit()
+            except Exception:
+                yield 'data: {"error":"Explanation unavailable. Please try again."}\n\n'
+                return
+        yield 'data: {"done":true}\n\n'
 
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # disable nginx buffering
-        },
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

@@ -9,7 +9,7 @@ asyncpg==0.30.0
 alembic==1.14.0
 
 # ── Settings & Validation ─────────────────────
-pydantic==2.10.2
+pydantic[email]==2.10.2  # EmailStr validation for registration and sign-in
 pydantic-settings==2.6.1
 
 # ── Authentication ────────────────────────────
@@ -22,6 +22,7 @@ groq==0.13.0
 # ── File Processing ───────────────────────────
 pdfplumber==0.11.4
 pytesseract==0.3.13
+pdf2image==1.17.0  # Rasterizes scanned PDFs for the existing OCR fallback
 pillow==11.0.0
 python-magic==0.4.27
 
@@ -34,7 +35,9 @@ aiosmtplib==3.0.2
 # ── Dev / Testing ─────────────────────────────
 pytest==8.3.4
 pytest-asyncio==0.24.0
-httpx==0.28.0
+httpx==0.27.2  # Compatible with the pinned Groq SDK
+aiosqlite==0.22.1  # SQLite driver for API integration tests
+pytest-cov==6.0.0  # Provides the existing CI coverage flags
 coverage==7.6.8
 
 # ── Linting / Type Checking ───────────────────
