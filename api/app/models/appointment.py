@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -59,8 +59,15 @@ class AppointmentStatus(enum.StrEnum):
 class Appointment(Base):
     __tablename__ = "appointments"
     __table_args__ = (
-        # DB-level double-booking prevention
-        UniqueConstraint("slot_id", name="uq_appointments_slot"),
+        # DB-level double-booking prevention: at most one *confirmed* appointment
+        # per slot. Cancelled rows are kept for history and do not block rebooking.
+        Index(
+            "uq_appointments_slot_confirmed",
+            "slot_id",
+            unique=True,
+            postgresql_where=text("status = 'confirmed'"),
+            sqlite_where=text("status = 'confirmed'"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -71,7 +78,7 @@ class Appointment(Base):
         ForeignKey("doctors.id"), nullable=False, index=True
     )
     slot_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("availability_slots.id"), nullable=False, unique=True
+        ForeignKey("availability_slots.id"), nullable=False, index=True
     )
     status: Mapped[AppointmentStatus] = mapped_column(
         Enum(AppointmentStatus), nullable=False, default=AppointmentStatus.confirmed

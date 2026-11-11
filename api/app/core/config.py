@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 10
 
     # ── CORS ──────────────────────────────────
-    cors_origins: list[str] = ["http://localhost:3000"]
+    # Comma-separated, matching .env.example (e.g. "http://localhost:3000,https://app.vercel.app")
+    cors_origins: str = "http://localhost:3000"
 
     # ── Email ─────────────────────────────────
     mail_backend: str = "console"
@@ -37,6 +38,11 @@ class Settings(BaseSettings):
     mail_username: str = ""
     mail_password: str = ""
     mail_from: str = "noreply@pulseos.app"
+
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 
 settings = Settings()
