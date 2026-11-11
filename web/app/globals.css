@@ -283,6 +283,26 @@ html.light ::selection {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  #story {
+    height: auto;
+  }
+
+  #story > div:has(> .story-panel) {
+    position: relative;
+    top: auto;
+    height: auto;
+    translate: none;
+    display: grid;
+    gap: 3rem;
+    padding-block: 4rem;
+  }
+
+  #story .story-panel {
+    position: static;
+    translate: none;
+    opacity: 1;
+  }
 }
 
 @keyframes heartbeat {

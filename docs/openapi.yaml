@@ -461,6 +461,11 @@ components:
         full_name:
           type: string
           example: Elena Rostova
+        role:
+          type: string
+          enum: [patient]
+          default: patient
+          description: Public registration only creates patients; any other value returns 403.
 
     UserLoginRequest:
       type: object

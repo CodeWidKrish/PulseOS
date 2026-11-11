@@ -1,3 +1,4 @@
+import json
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 10
 
     # ── CORS ──────────────────────────────────
-    # Comma-separated, matching .env.example (e.g. "http://localhost:3000,https://app.vercel.app")
+    # JSON array (as in .env.example) or comma-separated list of origins
     cors_origins: str = "http://localhost:3000"
 
     # ── Email ─────────────────────────────────
@@ -42,7 +43,11 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        raw = self.cors_origins.strip()
+        if raw.startswith("["):
+            # JSON array form, e.g. ["http://localhost:3000"]
+            return [str(o).strip() for o in json.loads(raw) if str(o).strip()]
+        return [o.strip() for o in raw.split(",") if o.strip()]
 
 
 settings = Settings()
