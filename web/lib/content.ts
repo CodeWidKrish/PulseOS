@@ -194,7 +194,7 @@ export const MARKETING_CONTENT = {
     ] as MedicineSample[],
     beforeAfter: {
       title: "Before and after",
-      caption: "Drag to compare a raw report line with PulseOS",
+      caption: "Drag to turn lab jargon into plain language",
       beforeSnippet:
         "HBA1C (NGSP) 5.4 %   REF 4.0-5.6\nEAG 108 mg/dL   METHOD: HPLC\nINTERP: NON-DIABETIC RANGE",
       afterSnippet:

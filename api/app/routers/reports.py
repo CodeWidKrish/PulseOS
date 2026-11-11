@@ -128,7 +128,7 @@ async def explain_report(
             )
         except Exception:
             raise HTTPException(422, "Could not read the report. Try a clearer file.") from None
-        lab_values = parse_lab_values(extracted)
+        lab_values = parse_lab_values(extracted or "")
         if not lab_values:
             raise HTTPException(422, "No readable results with reference ranges were found.")
         report.extracted_text = extracted

@@ -23,7 +23,7 @@ export function ScrollHeart() {
   const outlineRef = useRef<ElectricLogoHandle | null>(null);
 
   const reducedMotion = useReducedMotion();
-  const { bpm, setBpm, subscribeBeat } = useHeart();
+  const { bpm, setBpm, subscribeBeat, discharge } = useHeart();
 
   // Dynamic state
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -31,9 +31,13 @@ export function ScrollHeart() {
   const [glowColor, setGlowColor] = useState("#FF4D5E");
   const [isHeroHovered, setIsHeroHovered] = useState(false);
 
-  // Dynamic interactive feedback: hold-to-charge in hero
   const [glowMultiplier, setGlowMultiplier] = useState(1.0);
   const [cursorIntensity, setCursorIntensity] = useState(0.75);
+  const isDebugLayers = React.useSyncExternalStore(
+    () => () => {},
+    () => typeof window !== "undefined" && window.location.search.includes("debug=layers"),
+    () => false
+  );
 
   const chargeStartTimeRef = useRef<number | null>(null);
   const chargeIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -189,14 +193,9 @@ export function ScrollHeart() {
       : 0;
 
     if (duration > 300) {
-      // Powerful discharge sequence
+      // Powerful discharge sequence with double thump and low rumble
       outlineRef.current?.ripple(undefined, undefined, 2.5);
-
-      // Strong double beat
-      outlineRef.current?.beat(2.4);
-      setTimeout(() => {
-        outlineRef.current?.beat(1.8);
-      }, 220);
+      discharge();
 
       // Flash scale feedback
       if (tiltRef.current) {
@@ -229,7 +228,7 @@ export function ScrollHeart() {
       setGlowMultiplier(1.0);
       setCursorIntensity(0.75);
     }
-  }, [bpm, setBpm]);
+  }, [bpm, setBpm, discharge]);
 
   // Master GSAP Timeline across entire page scroll + Background cross-fade
   useEffect(() => {
@@ -571,10 +570,14 @@ export function ScrollHeart() {
   return (
     <div
       ref={wrapperRef}
-      className="fixed inset-x-0 top-0 w-full h-[100svh] z-[1] flex items-center justify-center transition-opacity duration-300 pointer-events-none"
+      className="fixed inset-0 w-full h-[100svh] z-[1] flex items-center justify-center transition-opacity duration-300 pointer-events-none"
       style={{
         perspective: "1000px",
         pointerEvents: isHeroHovered ? "auto" : "none",
+        maskImage: "radial-gradient(ellipse at center, #000 55%, transparent 98%)",
+        WebkitMaskImage: "radial-gradient(ellipse at center, #000 55%, transparent 98%)",
+        mixBlendMode: "screen",
+        ...(isDebugLayers ? { outline: "2px dashed #00FF00" } : {}),
       }}
       aria-hidden="true"
       onPointerDown={startCharge}
@@ -583,11 +586,12 @@ export function ScrollHeart() {
     >
       <div
         ref={tiltRef}
-        className="relative w-full h-full max-w-[900px] flex items-center justify-center pointer-events-none"
+        className="relative w-full h-full flex items-center justify-center pointer-events-none"
         style={{
           transformStyle: "preserve-3d",
           willChange: "transform",
           pointerEvents: isHeroHovered ? "auto" : "none",
+          ...(isDebugLayers ? { outline: "2px dashed #FF8800" } : {}),
         }}
       >
         <DynamicElectricLogo
@@ -595,11 +599,11 @@ export function ScrollHeart() {
           src="/media/heart-plain.svg"
           color={color}
           glowColor={glowColor}
-          scale={0.72}
+          scale={0.55}
           strands={4}
           bend={0.6}
           crackle={1.2}
-          arcs={1}
+          arcs={0.6}
           thickness={1.5}
           glow={1.3 * glowMultiplier}
           fill={0.5}
@@ -609,7 +613,7 @@ export function ScrollHeart() {
           cursorIntensity={cursorIntensity}
           cursorRadius={120}
           theme={theme}
-          className="absolute inset-0"
+          className="absolute inset-0 w-full h-full"
         />
       </div>
     </div>
