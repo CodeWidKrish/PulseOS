@@ -5,6 +5,9 @@ import dynamic from "next/dynamic";
 import { HeartProvider } from "@/lib/heart-context";
 import { MarketingClientShell } from "@/components/marketing/client-shell";
 import { Hero } from "@/components/marketing/hero";
+import { HowItWorks } from "@/components/marketing/how-it-works";
+import { NumbersBand } from "@/components/marketing/numbers-band";
+import { WhoItIsFor } from "@/components/marketing/who-it-is-for";
 import { SecuritySection } from "@/components/marketing/security-section";
 import { FAQSection } from "@/components/marketing/faq-section";
 import { ClosingCTA } from "@/components/marketing/closing-cta";
@@ -43,30 +46,39 @@ export default function MarketingPage() {
         {/* Layer 1: Client Shell with Persistent Background Heart (z-1) & Nav/Palette */}
         <MarketingClientShell />
 
-        {/* Layer 2: Main Marketing Sections (Transparent backgrounds) */}
+        {/* Layer 2: Main Marketing Sections */}
         <main className="relative z-[2]">
-          {/* 1. Hero with MaskedHeading, Dual-Layer Heart, Ambient Cells & Live ECG Strip */}
+          {/* 1. Hero with MaskedHeading, Heart, CTAs, Trust Row, and Live ECG Strip */}
           <Hero />
 
-          {/* 2. Pinned Scroll Story */}
+          {/* 2. How It Works 3-Step Strip */}
+          <HowItWorks />
+
+          {/* 3. Pinned Scroll Story */}
           <PinnedStory />
 
-          {/* 3. Interactive Report Explainer Demo */}
+          {/* 4. Interactive Report Explainer Demo */}
           <InteractiveDemo />
 
-          {/* 4. Dashboard Preview (Bento Grid) with live BPM readout */}
+          {/* 5. Dashboard Preview (Bento Grid) with live BPM readout and Before/After */}
           <BentoDashboard />
 
-          {/* 5. Security & Trust Section (Server Component) */}
+          {/* 6. Numbers Band (Count-up Sample Stats) */}
+          <NumbersBand />
+
+          {/* 7. Who It Is For (Patients and Doctors) */}
+          <WhoItIsFor />
+
+          {/* 8. Security & Trust Architecture */}
           <SecuritySection />
 
-          {/* 6. Accessible FAQ Accordion (Server Component) */}
+          {/* 9. Accessible Clinical FAQ Accordion */}
           <FAQSection />
 
-          {/* 7. Closing CTA (Server Component) */}
+          {/* 10. Closing Call to Action */}
           <ClosingCTA />
 
-          {/* Footer with Medical Disclaimer (Server Component) */}
+          {/* 11. Multi-Column Footer with Medical Disclaimer & Back to Top */}
           <MarketingFooter />
         </main>
       </div>

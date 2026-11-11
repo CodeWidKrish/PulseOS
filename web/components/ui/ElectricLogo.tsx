@@ -655,8 +655,12 @@ void main() {
   color += uGlowColor * tint * (1.0 - alpha);
   alpha += tint * (1.0 - alpha);
   float grain = (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5) / 255.0;
-  alpha = clamp(alpha + grain, 0.0, 1.0);
-  fragColor = vec4(clamp(color + grain, 0.0, alpha), alpha);
+  if (alpha > 0.001) {
+    alpha = clamp(alpha + grain, 0.0, 1.0);
+    fragColor = vec4(clamp(color + grain, 0.0, alpha), alpha);
+  } else {
+    fragColor = vec4(0.0);
+  }
 }
 `;
 
