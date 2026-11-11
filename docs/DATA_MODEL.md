@@ -88,7 +88,7 @@ erDiagram
         uuid id PK
         uuid patient_id FK "ON DELETE CASCADE, indexed"
         uuid doctor_id FK "ON DELETE RESTRICT, indexed"
-        uuid slot_id FK "ON DELETE RESTRICT, UNIQUE"
+        uuid slot_id FK "ON DELETE RESTRICT, UNIQUE WHERE confirmed"
         varchar status "confirmed | completed | cancelled"
         timestamp_tz created_at
     }
@@ -233,12 +233,12 @@ CREATE TABLE appointments (
     slot_id UUID NOT NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'confirmed',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_appointments_slot UNIQUE (slot_id),
     CONSTRAINT fk_appointments_patient FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_appointments_doctor FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE RESTRICT,
     CONSTRAINT fk_appointments_slot FOREIGN KEY (slot_id) REFERENCES availability_slots(id) ON DELETE RESTRICT,
     CONSTRAINT ck_appointments_status CHECK (status IN ('confirmed', 'completed', 'cancelled'))
 );
+CREATE UNIQUE INDEX uq_appointments_slot_confirmed ON appointments (slot_id) WHERE status = 'confirmed';
 
 CREATE INDEX idx_appointments_patient ON appointments(patient_id, created_at DESC);
 CREATE INDEX idx_appointments_doctor ON appointments(doctor_id, created_at DESC);
@@ -251,7 +251,7 @@ CREATE INDEX idx_appointments_doctor ON appointments(doctor_id, created_at DESC)
 To guarantee that no consultation slot is double-booked even under intense concurrent load, PulseOS uses a **defense-in-depth approach** combining an atomic row lock with an immutable unique database constraint.
 
 ### Step 1: Database Hard Constraint
-The `appointments` table enforces `CONSTRAINT uq_appointments_slot UNIQUE (slot_id)`. At the database engine level (B-Tree index), no two rows can ever reference the same `slot_id`.
+The `appointments` table enforces a partial unique index `uq_appointments_slot_confirmed ON appointments (slot_id) WHERE status = 'confirmed'`. At the database engine level, no two *confirmed* appointments can ever reference the same `slot_id`; cancelled rows stay for history and do not block rebooking.
 
 ### Step 2: Atomic Transactional Execution in FastAPI
 ```python
@@ -379,7 +379,7 @@ Migrations are executed via Alembic in strict dependency order:
 5. `005_create_vitals`: Table `vitals` with composite indexes on `(user_id, recorded_at)`.
 6. `006_create_doctors`: Table `doctors` with optional `user_id` foreign key.
 7. `007_create_availability_slots`: Table `availability_slots` referencing `doctors(id)`.
-8. `008_create_appointments`: Table `appointments` with unique `slot_id` constraint.
+8. `008_create_appointments`: Table `appointments` with a partial unique index on `slot_id` for confirmed appointments.
 
 ---
 

@@ -1,0 +1,414 @@
+[
+  {
+    "route": "/",
+    "name": "marketing",
+    "viewport": 390,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/verify/marketing-390.png"
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "viewport": 390,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/login-390.png"
+  },
+  {
+    "route": "/register",
+    "name": "register",
+    "viewport": 390,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/register-390.png"
+  },
+  {
+    "route": "/dashboard",
+    "name": "dashboard",
+    "viewport": 390,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/dashboard-390.png"
+  },
+  {
+    "route": "/reports",
+    "name": "reports",
+    "viewport": 390,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/reports-390.png"
+  },
+  {
+    "route": "/reports/rep-1",
+    "name": "report-detail",
+    "viewport": 390,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/report-detail-390.png"
+  },
+  {
+    "route": "/vitals",
+    "name": "vitals",
+    "viewport": 390,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/vitals-390.png"
+  },
+  {
+    "route": "/appointments",
+    "name": "appointments",
+    "viewport": 390,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/appointments-390.png"
+  },
+  {
+    "route": "/route-404-check",
+    "name": "not-found",
+    "viewport": 390,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/verify/not-found-390.png"
+  },
+  {
+    "route": "/",
+    "name": "marketing",
+    "viewport": 768,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/verify/marketing-768.png"
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "viewport": 768,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/login-768.png"
+  },
+  {
+    "route": "/register",
+    "name": "register",
+    "viewport": 768,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/register-768.png"
+  },
+  {
+    "route": "/dashboard",
+    "name": "dashboard",
+    "viewport": 768,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/dashboard-768.png"
+  },
+  {
+    "route": "/reports",
+    "name": "reports",
+    "viewport": 768,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/reports-768.png"
+  },
+  {
+    "route": "/reports/rep-1",
+    "name": "report-detail",
+    "viewport": 768,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/report-detail-768.png"
+  },
+  {
+    "route": "/vitals",
+    "name": "vitals",
+    "viewport": 768,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/vitals-768.png"
+  },
+  {
+    "route": "/appointments",
+    "name": "appointments",
+    "viewport": 768,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/appointments-768.png"
+  },
+  {
+    "route": "/route-404-check",
+    "name": "not-found",
+    "viewport": 768,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/verify/not-found-768.png"
+  },
+  {
+    "route": "/",
+    "name": "marketing",
+    "viewport": 1440,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 1,
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/verify/marketing-1440.png"
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "viewport": 1440,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 1,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/login-1440.png"
+  },
+  {
+    "route": "/register",
+    "name": "register",
+    "viewport": 1440,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 1,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/register-1440.png"
+  },
+  {
+    "route": "/dashboard",
+    "name": "dashboard",
+    "viewport": 1440,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 1,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/dashboard-1440.png"
+  },
+  {
+    "route": "/reports",
+    "name": "reports",
+    "viewport": 1440,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/reports-1440.png"
+  },
+  {
+    "route": "/reports/rep-1",
+    "name": "report-detail",
+    "viewport": 1440,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 1,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/report-detail-1440.png"
+  },
+  {
+    "route": "/vitals",
+    "name": "vitals",
+    "viewport": 1440,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 1,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/vitals-1440.png"
+  },
+  {
+    "route": "/appointments",
+    "name": "appointments",
+    "viewport": 1440,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 1,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/appointments-1440.png"
+  },
+  {
+    "route": "/route-404-check",
+    "name": "not-found",
+    "viewport": 1440,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 1,
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/verify/not-found-1440.png"
+  },
+  {
+    "route": "/",
+    "name": "marketing",
+    "viewport": 1920,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/verify/marketing-1920.png"
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "viewport": 1920,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/login-1920.png"
+  },
+  {
+    "route": "/register",
+    "name": "register",
+    "viewport": 1920,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/register-1920.png"
+  },
+  {
+    "route": "/dashboard",
+    "name": "dashboard",
+    "viewport": 1920,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/dashboard-1920.png"
+  },
+  {
+    "route": "/reports",
+    "name": "reports",
+    "viewport": 1920,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/reports-1920.png"
+  },
+  {
+    "route": "/reports/rep-1",
+    "name": "report-detail",
+    "viewport": 1920,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/report-detail-1920.png"
+  },
+  {
+    "route": "/vitals",
+    "name": "vitals",
+    "viewport": 1920,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/vitals-1920.png"
+  },
+  {
+    "route": "/appointments",
+    "name": "appointments",
+    "viewport": 1920,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [],
+    "screenshot": "public/media/verify/appointments-1920.png"
+  },
+  {
+    "route": "/route-404-check",
+    "name": "not-found",
+    "viewport": 1920,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "axeCriticalSerious": 0,
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/verify/not-found-1920.png"
+  }
+]

@@ -13,11 +13,25 @@ interface Cell {
   alpha: number;
 }
 
+function subscribeNoop() {
+  return () => {};
+}
+
+function getIsDebugLayers(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.search.includes("debug=layers");
+}
+
 export function AmbientBloodCells() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { subscribeBeat } = useHeart();
   const reducedMotion = useReducedMotion();
+  const isDebugLayers = React.useSyncExternalStore(
+    subscribeNoop,
+    getIsDebugLayers,
+    () => false
+  );
 
   useEffect(() => {
     if (reducedMotion || typeof window === "undefined") return;
@@ -154,6 +168,11 @@ export function AmbientBloodCells() {
     <div
       ref={containerRef}
       className="absolute inset-0 pointer-events-none z-[-1] overflow-hidden opacity-60"
+      style={{
+        maskImage: "radial-gradient(ellipse at center, #000 60%, transparent 96%)",
+        WebkitMaskImage: "radial-gradient(ellipse at center, #000 60%, transparent 96%)",
+        ...(isDebugLayers ? { outline: "2px dashed #FF0088" } : {}),
+      }}
       aria-hidden="true"
     >
       <canvas

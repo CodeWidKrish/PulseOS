@@ -1,0 +1,435 @@
+[
+  {
+    "route": "/",
+    "name": "marketing",
+    "width": 390,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/marketing-390.png"
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "width": 390,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/login-390.png"
+  },
+  {
+    "route": "/register",
+    "name": "register",
+    "width": 390,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/register-390.png"
+  },
+  {
+    "route": "/dashboard",
+    "name": "dashboard",
+    "width": 390,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/dashboard-390.png"
+  },
+  {
+    "route": "/reports",
+    "name": "reports",
+    "width": 390,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/reports-390.png"
+  },
+  {
+    "route": "/reports/rep-1",
+    "name": "report-detail",
+    "width": 390,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/report-detail-390.png"
+  },
+  {
+    "route": "/vitals",
+    "name": "vitals",
+    "width": 390,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/vitals-390.png"
+  },
+  {
+    "route": "/appointments",
+    "name": "appointments",
+    "width": 390,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/appointments-390.png"
+  },
+  {
+    "route": "/route-404-check",
+    "name": "not-found",
+    "width": 390,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/not-found-390.png"
+  },
+  {
+    "route": "/",
+    "name": "marketing",
+    "width": 768,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/marketing-768.png"
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "width": 768,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/login-768.png"
+  },
+  {
+    "route": "/register",
+    "name": "register",
+    "width": 768,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/register-768.png"
+  },
+  {
+    "route": "/dashboard",
+    "name": "dashboard",
+    "width": 768,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/dashboard-768.png"
+  },
+  {
+    "route": "/reports",
+    "name": "reports",
+    "width": 768,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/reports-768.png"
+  },
+  {
+    "route": "/reports/rep-1",
+    "name": "report-detail",
+    "width": 768,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/report-detail-768.png"
+  },
+  {
+    "route": "/vitals",
+    "name": "vitals",
+    "width": 768,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/vitals-768.png"
+  },
+  {
+    "route": "/appointments",
+    "name": "appointments",
+    "width": 768,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/appointments-768.png"
+  },
+  {
+    "route": "/route-404-check",
+    "name": "not-found",
+    "width": 768,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/not-found-768.png"
+  },
+  {
+    "route": "/",
+    "name": "marketing",
+    "width": 1440,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/marketing-1440.png"
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "width": 1440,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/login-1440.png"
+  },
+  {
+    "route": "/register",
+    "name": "register",
+    "width": 1440,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/register-1440.png"
+  },
+  {
+    "route": "/dashboard",
+    "name": "dashboard",
+    "width": 1440,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/dashboard-1440.png"
+  },
+  {
+    "route": "/reports",
+    "name": "reports",
+    "width": 1440,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/reports-1440.png"
+  },
+  {
+    "route": "/reports/rep-1",
+    "name": "report-detail",
+    "width": 1440,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/report-detail-1440.png"
+  },
+  {
+    "route": "/vitals",
+    "name": "vitals",
+    "width": 1440,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/vitals-1440.png"
+  },
+  {
+    "route": "/appointments",
+    "name": "appointments",
+    "width": 1440,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/appointments-1440.png"
+  },
+  {
+    "route": "/route-404-check",
+    "name": "not-found",
+    "width": 1440,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/not-found-1440.png"
+  },
+  {
+    "route": "/",
+    "name": "marketing",
+    "width": 1920,
+    "status": 200,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/marketing-1920.png"
+  },
+  {
+    "route": "/login",
+    "name": "login",
+    "width": 1920,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/login-1920.png"
+  },
+  {
+    "route": "/register",
+    "name": "register",
+    "width": 1920,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/register-1920.png"
+  },
+  {
+    "route": "/dashboard",
+    "name": "dashboard",
+    "width": 1920,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/dashboard-1920.png"
+  },
+  {
+    "route": "/reports",
+    "name": "reports",
+    "width": 1920,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/reports-1920.png"
+  },
+  {
+    "route": "/reports/rep-1",
+    "name": "report-detail",
+    "width": 1920,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/report-detail-1920.png"
+  },
+  {
+    "route": "/vitals",
+    "name": "vitals",
+    "width": 1920,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/vitals-1920.png"
+  },
+  {
+    "route": "/appointments",
+    "name": "appointments",
+    "width": 1920,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/appointments-1920.png"
+  },
+  {
+    "route": "/route-404-check",
+    "name": "not-found",
+    "width": 1920,
+    "status": 404,
+    "hasHorizontalScroll": false,
+    "scrollDiff": 0,
+    "consoleErrors": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "screenshot": "public/media/audit/not-found-1920.png"
+  }
+]

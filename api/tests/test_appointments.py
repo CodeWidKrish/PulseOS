@@ -60,3 +60,32 @@ async def test_double_booking_prevention(client: AsyncClient, auth_headers: dict
     resp2 = await client.post("/api/v1/appointments", json=booking_payload, headers=headers2)
     assert resp2.status_code == 409, f"Expected 409 Conflict, got {resp2.status_code}: {resp2.text}"
     assert "no longer available" in resp2.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_slot_can_be_rebooked(client: AsyncClient, auth_headers: dict):
+    override_fn = app.dependency_overrides[get_db]
+    async for db in override_fn():
+        doc = Doctor(name="Dr. Ana Ruiz", specialty="General Practice")
+        db.add(doc)
+        await db.flush()
+        slot = AvailabilitySlot(
+            doctor_id=doc.id,
+            starts_at=datetime.now(UTC) + timedelta(days=2),
+            ends_at=datetime.now(UTC) + timedelta(days=2, hours=1),
+            is_booked=False,
+        )
+        db.add(slot)
+        await db.commit()
+        payload = {"doctor_id": str(doc.id), "slot_id": str(slot.id)}
+        break
+
+    first = await client.post("/api/v1/appointments", json=payload, headers=auth_headers)
+    assert first.status_code == 201
+
+    cancel = await client.delete(f"/api/v1/appointments/{first.json()['id']}", headers=auth_headers)
+    assert cancel.status_code == 204
+
+    rebook = await client.post("/api/v1/appointments", json=payload, headers=auth_headers)
+    assert rebook.status_code == 201, rebook.text
+    assert rebook.json()["status"] == "confirmed"

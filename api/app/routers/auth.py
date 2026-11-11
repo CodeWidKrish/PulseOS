@@ -11,7 +11,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.auth import RefreshRequest, TokenResponse, UserLogin, UserRegister, UserResponse
 
 router = APIRouter()
@@ -38,7 +38,7 @@ async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
         email=body.email,
         password_hash=hash_password(body.password),
         full_name=body.full_name,
-        role=body.role,
+        role=UserRole.patient,
     )
     db.add(user)
     await db.commit()
