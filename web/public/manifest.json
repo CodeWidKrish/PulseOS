@@ -1,0 +1,16 @@
+{
+  "name": "PulseOS — AI Health Companion",
+  "short_name": "PulseOS",
+  "description": "Turn medical lab reports and vitals into calm, plain-language explanations with actionable next steps.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07090D",
+  "theme_color": "#07090D",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

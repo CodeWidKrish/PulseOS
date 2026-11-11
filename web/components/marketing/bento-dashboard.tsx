@@ -5,6 +5,8 @@ import { MARKETING_CONTENT } from "@/lib/content";
 import { toast } from "@/components/ui/toast";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useHeart } from "@/lib/heart-context";
+import { BeforeAfter } from "./before-after";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 
 export function BentoDashboard() {
   const { bpm } = useHeart();
@@ -20,41 +22,8 @@ export function BentoDashboard() {
   const [medicines, setMedicines] = useState(
     MARKETING_CONTENT.dashboard.medicines
   );
-  const [sliderPercent, setSliderPercent] = useState(50);
   const [animatedScore, setAnimatedScore] = useState(0);
   const reducedMotion = useReducedMotion();
-
-  const isDraggingSliderRef = useRef(false);
-  const sliderBoxRef = useRef<HTMLDivElement | null>(null);
-
-  const updateSliderFromPointer = (clientX: number) => {
-    if (!sliderBoxRef.current) return;
-    const rect = sliderBoxRef.current.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-    const percent = Math.round((x / rect.width) * 100);
-    setSliderPercent(Math.max(5, Math.min(95, percent)));
-  };
-
-  const handleSliderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    isDraggingSliderRef.current = true;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
-    updateSliderFromPointer(e.clientX);
-  };
-
-  const handleSliderPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingSliderRef.current) return;
-    updateSliderFromPointer(e.clientX);
-  };
-
-  const handleSliderPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    isDraggingSliderRef.current = false;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
-  };
 
   // Native IntersectionObserver to trigger animations smoothly on scroll
   useEffect(() => {
@@ -137,7 +106,10 @@ export function BentoDashboard() {
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3.5 mt-10">
           {/* Tile 1: Health Score (2 cols) */}
-          <div className="md:col-span-2 bg-white rounded-[28px] p-6 shadow-sm border border-black/5 flex flex-col justify-between">
+          <SpotlightCard
+            className="md:col-span-2 bg-white rounded-[28px] p-6 shadow-sm border border-black/5 flex flex-col justify-between"
+            spotlightColor="rgba(94, 225, 210, 0.15)"
+          >
             <div>
               <h3 className="font-semibold text-lg tracking-tight text-[#0B0F15]">
                 {MARKETING_CONTENT.dashboard.healthScore.label}
@@ -185,10 +157,13 @@ export function BentoDashboard() {
                 <span className="text-sm text-[#6B7280]"> / 100</span>
               </div>
             </div>
-          </div>
+          </SpotlightCard>
 
           {/* Tile 2: Resting Heart Rate Chart (4 cols) */}
-          <div className="md:col-span-4 bg-white rounded-[28px] p-6 shadow-sm border border-black/5 flex flex-col justify-between">
+          <SpotlightCard
+            className="md:col-span-4 bg-white rounded-[28px] p-6 shadow-sm border border-black/5 flex flex-col justify-between"
+            spotlightColor="rgba(255, 77, 94, 0.15)"
+          >
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h3 className="font-semibold text-lg tracking-tight text-[#0B0F15]">
@@ -264,12 +239,14 @@ export function BentoDashboard() {
                 />
               </svg>
             </div>
-          </div>
+          </SpotlightCard>
 
           {/* Tile 3: Doctor Appointment Booking (3 cols, Obsidian Dark) */}
-          <div
+          <SpotlightCard
             id="book"
             className="md:col-span-3 bg-[#0B0D12] text-[#F2F4F7] rounded-[28px] p-6 sm:p-7 shadow-lg flex flex-col justify-between"
+            spotlightColor="rgba(94, 225, 210, 0.2)"
+            borderColor="rgba(255, 255, 255, 0.12)"
           >
             <div>
               <h3 className="font-semibold text-lg tracking-tight text-white">
@@ -336,10 +313,13 @@ export function BentoDashboard() {
                 Confirm booking
               </button>
             </div>
-          </div>
+          </SpotlightCard>
 
           {/* Tile 4: Today's Medicines Checklist (3 cols) */}
-          <div className="md:col-span-3 bg-white rounded-[28px] p-6 sm:p-7 shadow-sm border border-black/5 flex flex-col justify-between">
+          <SpotlightCard
+            className="md:col-span-3 bg-white rounded-[28px] p-6 sm:p-7 shadow-sm border border-black/5 flex flex-col justify-between"
+            spotlightColor="rgba(255, 184, 107, 0.15)"
+          >
             <div>
               <h3 className="font-semibold text-lg tracking-tight text-[#0B0F15]">
                 Today&rsquo;s medicines
@@ -371,80 +351,11 @@ export function BentoDashboard() {
                 ))}
               </div>
             </div>
-          </div>
+          </SpotlightCard>
 
-          {/* Tile 5: Before and After Interactive Slider (6 cols, Full Width) */}
-          <div className="md:col-span-6 bg-white rounded-[28px] p-6 sm:p-7 shadow-sm border border-black/5">
-            <div>
-              <h3 className="font-semibold text-lg tracking-tight text-[#0B0F15]">
-                {MARKETING_CONTENT.dashboard.beforeAfter.title}
-              </h3>
-              <p className="text-xs text-[#6B7280]">
-                {MARKETING_CONTENT.dashboard.beforeAfter.caption}
-              </p>
-            </div>
-
-            {/* Slider Container */}
-            <div
-              ref={sliderBoxRef}
-              onPointerDown={handleSliderPointerDown}
-              onPointerMove={handleSliderPointerMove}
-              onPointerUp={handleSliderPointerUp}
-              onPointerCancel={handleSliderPointerUp}
-              className="relative mt-5 rounded-2xl overflow-hidden bg-[#F4F5F7] min-h-[190px] border border-black/10 select-none cursor-ew-resize touch-none"
-            >
-              {/* Before View (Dense Lab Format) */}
-              <div className="absolute inset-0 p-5 text-xs sm:text-sm font-mono text-[#5A6270] leading-relaxed">
-                <span className="text-[10px] uppercase tracking-wider text-[#5A6270] block mb-1 font-sans font-bold">
-                  Raw Lab Report
-                </span>
-                {MARKETING_CONTENT.dashboard.beforeAfter.beforeSnippet
-                  .split("\n")
-                  .map((line, i) => (
-                    <div key={i}>{line}</div>
-                  ))}
-              </div>
-
-              {/* After View (Calm Plain English, Clip-path applied) */}
-              <div
-                className="absolute inset-0 p-5 text-xs sm:text-sm font-sans bg-[#E8FBF8] text-[#0B3B36] leading-relaxed pointer-events-none transition-none"
-                style={{
-                  clipPath: `inset(0 ${(100 - sliderPercent).toFixed(1)}% 0 0)`,
-                }}
-              >
-                <span className="text-[10px] uppercase tracking-wider text-[#0B3B36] block mb-1 font-bold">
-                  PulseOS Explanation
-                </span>
-                {MARKETING_CONTENT.dashboard.beforeAfter.afterSnippet
-                  .split("\n")
-                  .map((line, i) => (
-                    <div key={i} className={i === 0 ? "font-bold text-[#082925]" : ""}>
-                      {line}
-                    </div>
-                  ))}
-              </div>
-
-              {/* Divider Line Handle */}
-              <div
-                className="absolute top-0 bottom-0 w-[2px] bg-[#0B0D12] pointer-events-none z-20"
-                style={{ left: `${sliderPercent}%` }}
-              >
-                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white border border-black/20 shadow-lg flex items-center justify-center text-xs font-bold text-black pointer-events-none select-none">
-                  ↔
-                </div>
-              </div>
-
-              {/* Accessible Range Input */}
-              <input
-                type="range"
-                min="5"
-                max="95"
-                value={sliderPercent}
-                onChange={(e) => setSliderPercent(Number(e.target.value))}
-                aria-label="Drag slider to compare raw report with PulseOS"
-                className="sr-only"
-              />
-            </div>
+          {/* Tile 5: Before and After Interactive Transformation (6 cols, Full Width) */}
+          <div className="md:col-span-6">
+            <BeforeAfter />
           </div>
         </div>
       </div>

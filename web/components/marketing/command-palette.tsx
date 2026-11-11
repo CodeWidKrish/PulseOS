@@ -9,6 +9,20 @@ interface CommandPaletteProps {
   onClose: () => void;
 }
 
+const DEFAULT_COMMANDS = [
+  { title: "Dashboard Overview", category: "Navigation", href: "/dashboard", badge: "App" },
+  { title: "Lab Reports Hub", category: "Navigation", href: "/reports", badge: "App" },
+  { title: "Report Detail (CMP)", category: "Navigation", href: "/reports/rep-1", badge: "App" },
+  { title: "Vitals Tracker", category: "Navigation", href: "/vitals", badge: "App" },
+  { title: "Book Doctor Appointment", category: "Navigation", href: "/appointments", badge: "App" },
+  { title: "Patient Login", category: "Auth", href: "/login", badge: "Auth" },
+  { title: "Create Account", category: "Auth", href: "/register", badge: "Auth" },
+  { title: "Interactive Lab Demo", category: "Marketing", href: "/#demo", badge: "Site" },
+  { title: "Before & After Jargon Slider", category: "Marketing", href: "/#before-after", badge: "Site" },
+  { title: "Clinical Security & HIPAA", category: "Marketing", href: "/#security", badge: "Site" },
+  { title: "Frequently Asked Questions", category: "Marketing", href: "/#faq", badge: "Site" },
+];
+
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -16,17 +30,18 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { scrollTo } = useLenis();
 
-  const commands = MARKETING_CONTENT.commandPalette.commands;
+  const commands = DEFAULT_COMMANDS;
 
   const filteredCommands = commands.filter((cmd) =>
-    cmd.title.toLowerCase().includes(query.toLowerCase())
+    cmd.title.toLowerCase().includes(query.toLowerCase()) ||
+    cmd.category.toLowerCase().includes(query.toLowerCase())
   );
 
   const executeCommand = useCallback(
     (href: string) => {
       onClose();
-      if (href.startsWith("#")) {
-        scrollTo(href, -70);
+      if (href.startsWith("#") || href.startsWith("/#")) {
+        scrollTo(href.replace("/", ""), -70);
       } else {
         window.location.href = href;
       }
@@ -106,7 +121,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            placeholder={MARKETING_CONTENT.commandPalette.placeholder}
+            placeholder="Search or jump to page (e.g. Reports, Vitals)..."
             aria-label="Search navigation commands"
             className="w-full px-5 py-4 bg-transparent text-sm sm:text-base text-[#F2F4F7] placeholder-[#8B93A1] focus:outline-none"
           />
@@ -144,7 +159,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                 >
                   <span>{cmd.title}</span>
                   <span className="text-xs text-[#8B93A1] font-mono">
-                    {cmd.group}
+                    {cmd.category}
                   </span>
                 </li>
               );

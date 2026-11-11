@@ -134,19 +134,50 @@ export function InteractiveDemo() {
 
           {/* Right Column: Interactive Terminal Preview */}
           <div
-            className="bg-[#12161D] border border-white/10 rounded-[28px] p-6 sm:p-8 min-h-[360px] shadow-2xl relative overflow-hidden flex flex-col justify-between"
+            className="bg-[#12161D] border border-white/10 rounded-[26px] shadow-2xl relative overflow-hidden flex flex-col justify-between"
             aria-live="polite"
           >
-            {/* Window bar */}
-            <div>
-              <div className="flex items-center gap-2 mb-6" aria-hidden="true">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#2A303B]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#2A303B]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#2A303B]" />
+            {/* macOS Title Bar */}
+            <div
+              className="flex items-center justify-between px-4 py-[14px] bg-[#161B23] border-b border-[rgba(255,255,255,0.06)] rounded-t-[26px] select-none"
+              aria-hidden="true"
+            >
+              {/* Left: 3 macOS dots with hover glyphs */}
+              <div className="flex items-center gap-2 group w-20 sm:w-24 shrink-0">
+                {/* Close (Red) */}
+                <span className="w-3 h-3 rounded-full bg-[#FF5F57] border-[0.5px] border-[rgba(0,0,0,0.18)] flex items-center justify-center text-[8px] font-bold text-[rgba(0,0,0,0.65)] leading-none">
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none">
+                    &#x2715;
+                  </span>
+                </span>
+                {/* Minimize (Yellow) */}
+                <span className="w-3 h-3 rounded-full bg-[#FEBC2E] border-[0.5px] border-[rgba(0,0,0,0.18)] flex items-center justify-center text-[10px] font-bold text-[rgba(0,0,0,0.65)] leading-none">
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none -translate-y-[1px]">
+                    &minus;
+                  </span>
+                </span>
+                {/* Zoom (Green) */}
+                <span className="w-3 h-3 rounded-full bg-[#28C840] border-[0.5px] border-[rgba(0,0,0,0.18)] flex items-center justify-center text-[9px] font-bold text-[rgba(0,0,0,0.65)] leading-none">
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none">
+                    +
+                  </span>
+                </span>
               </div>
 
-              {/* Lab Values List */}
-              <div className="space-y-2.5 mb-6">
+              {/* Center: Window Title (Truncates cleanly on mobile) */}
+              <span className="text-[13px] text-[#8B93A1] font-mono tracking-tight text-center truncate px-2 flex-1 min-w-0">
+                PulseOS Clinical Intelligence — Diagnostic Report Analysis
+              </span>
+
+              {/* Right: Balancer spacer to keep title truly centered */}
+              <div className="w-20 sm:w-24 shrink-0 hidden sm:block" />
+            </div>
+
+            {/* Card Body */}
+            <div className="p-6 sm:p-8 flex flex-col justify-between flex-1">
+              <div>
+                {/* Lab Values List */}
+                <div className="space-y-2.5 mb-6">
                 {MARKETING_CONTENT.demo.labValues.map((metric, idx) => {
                   const isVisible = visibleIndices.includes(idx);
                   return (
@@ -193,6 +224,7 @@ export function InteractiveDemo() {
                   Click &ldquo;Analyze sample report&rdquo; to see the clinical explainer in action.
                 </span>
               )}
+            </div>
             </div>
           </div>
         </div>
