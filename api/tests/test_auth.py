@@ -1,10 +1,9 @@
 import pytest
+from conftest import TestSessionLocal
 from httpx import AsyncClient
 
-from app.core.deps import get_db
-from app.core.security import hash_password
-from app.main import app
-from app.models.user import User, UserRole
+from app.core.security import create_access_token
+from app.models.user import User
 
 
 @pytest.mark.asyncio
@@ -87,42 +86,25 @@ async def test_role_guard_patient_cannot_access_admin(client: AsyncClient, auth_
 
 
 @pytest.mark.asyncio
-async def test_register_cannot_self_assign_admin(client: AsyncClient):
-    reg = await client.post("/api/v1/auth/register", json={
-        "email": "sneaky@example.com",
-        "password": "sneakypassword123",
-        "full_name": "Sneaky User",
-        "role": "admin",
-    })
-    assert reg.status_code == 201
-    headers = {"Authorization": f"Bearer {reg.json()['access_token']}"}
-
-    me = await client.get("/api/v1/auth/me", headers=headers)
-    assert me.json()["role"] == "patient"
-    resp = await client.get("/api/v1/auth/admin/users", headers=headers)
-    assert resp.status_code == 403
-
-
-@pytest.mark.asyncio
 async def test_role_guard_admin_access_allowed(client: AsyncClient):
-    # Admins are created out-of-band (seed script), never via /register
-    async for db in app.dependency_overrides[get_db]():
-        db.add(User(
-            email="admin@example.com",
-            password_hash=hash_password("adminpassword123"),
-            full_name="Admin User",
-            role=UserRole.admin,
-        ))
-        await db.commit()
-        break
-
-    login = await client.post("/api/v1/auth/login", json={
-        "email": "admin@example.com",
-        "password": "adminpassword123",
-    })
-    assert login.status_code == 200
-    admin_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    async with TestSessionLocal() as session:
+        admin = User(
+            email="admin@example.com", full_name="Admin User",
+            password_hash="unused", role="admin",
+        )
+        session.add(admin)
+        await session.commit()
+    admin_token = create_access_token({"sub": str(admin.id), "role": "admin"})
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
 
     resp = await client.get("/api/v1/auth/admin/users", headers=admin_headers)
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
+
+@pytest.mark.asyncio
+async def test_public_registration_rejects_admin(client: AsyncClient):
+    response = await client.post("/api/v1/auth/register", json={
+        "email": "admin@example.com", "password": "password123",
+        "full_name": "Admin User", "role": "admin",
+    })
+    assert response.status_code == 403

@@ -8,8 +8,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    # No `role` field: self-registration always creates a patient.
-    # Doctor/admin accounts are created by the seed script or an admin.
+    role: str = "patient"
 
     @field_validator("password")
     @classmethod

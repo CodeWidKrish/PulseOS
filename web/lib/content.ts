@@ -66,15 +66,15 @@ export const MARKETING_CONTENT = {
     commandKeyLabel: "Ctrl K",
     commandKeyMac: "⌘K",
     cta: {
-      label: "Try the demo",
-      href: "#demo",
+      label: "Open PulseOS",
+      href: "/login",
     },
   },
 
   hero: {
     headlineWords: ["Your", "health,", "in", "plain", "language."],
     subcopy:
-      "Upload a lab report, ask about a symptom, track your vitals, and book a doctor. All in one calm place.",
+      "Upload a lab report, track your vitals, and book a doctor. All in one calm place.",
     ctaPrimary: {
       label: "Explain a sample report",
       href: "#demo",
@@ -253,8 +253,8 @@ export const MARKETING_CONTENT = {
     heading: "Start with one report.",
     subcopy: "Upload it and see what it says in under a minute.",
     ctaPrimary: {
-      label: "Try the demo",
-      href: "#demo",
+      label: "Open PulseOS",
+      href: "/login",
     },
     ctaSecondary: {
       label: "View on GitHub",
@@ -273,8 +273,8 @@ export const MARKETING_CONTENT = {
     emptyMessage: "No matching commands found.",
     commands: [
       { title: "Try the demo", href: "#demo", group: "Navigation" },
-      { title: "Open the dashboard", href: "#app", group: "Navigation" },
-      { title: "Book a doctor", href: "#book", group: "Actions" },
+      { title: "Open the dashboard", href: "/dashboard", group: "Navigation" },
+      { title: "Book a doctor", href: "/appointments", group: "Actions" },
       { title: "Security & Privacy", href: "#security", group: "About" },
       { title: "Read the FAQ", href: "#faq", group: "About" },
       { title: "Design System Showcase", href: "/design", group: "Developer" },
