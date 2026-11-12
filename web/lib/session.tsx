@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api, tokenStore, type User } from "@/lib/api";
+import { EcgLine } from "@/components/app/ecg-line";
 
 const SessionContext = createContext<User | null>(null);
 
@@ -59,12 +60,12 @@ export function RequireSession({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center bg-[var(--bg-page)] text-[#8B93A1] text-sm"
+        className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas text-sm text-fg-muted"
         role="status"
         aria-live="polite"
       >
-        <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D5E] shadow-[0_0_12px_#FF4D5E] animate-pulse mr-3" />
-        Loading your health workspace…
+        <EcgLine label="Loading" className="h-8 w-36" />
+        <span>Opening your health workspace…</span>
       </div>
     );
   }

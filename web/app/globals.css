@@ -31,6 +31,19 @@
   --shadow-glow-teal: 0 0 50px -10px rgba(94, 225, 210, 0.25);
   --shadow-elevation-high: 0 24px 48px -12px rgba(0, 0, 0, 0.70);
   --shadow-elevation-low: 0 8px 24px -6px rgba(0, 0, 0, 0.40);
+
+  /* ── Semantic app tokens (re-defined under html.light) ── */
+  --color-canvas: #07090D;
+  --color-surface: #12161D;
+  --color-surface-2: #181D26;
+  --color-fg: #F2F4F7;
+  --color-fg-muted: #8B93A1;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
+  --color-hover: rgba(255, 255, 255, 0.04);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-soft: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 :root {
@@ -78,6 +91,18 @@ html.light {
   --text-page: #0B0F15;
   --nav-bg: rgba(248, 249, 250, 0.85);
   --nav-border: rgba(0, 0, 0, 0.08);
+
+  --color-canvas: #F6F7F9;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F1F3F6;
+  --color-fg: #0B0F15;
+  --color-fg-muted: #4B5563;
+  --color-line: rgba(11, 15, 21, 0.09);
+  --color-line-strong: rgba(11, 15, 21, 0.16);
+  --color-hover: rgba(11, 15, 21, 0.04);
+  --color-pulse-muted: rgba(224, 46, 66, 0.10);
+  --color-teal-muted: rgba(15, 118, 110, 0.10);
+  --color-amber-muted: rgba(180, 83, 9, 0.10);
 
   color-scheme: light;
 }
@@ -347,4 +372,183 @@ html.light ::selection {
 
 .word-reveal-anim {
   animation: wordReveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Buttons as classes (usable on <a> and <button>, DESIGN §5.1) ── */
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: transform 0.25s var(--ease-out-soft), box-shadow 0.25s var(--ease-out-soft),
+    background-color 0.25s var(--ease-out-soft), border-color 0.25s var(--ease-out-soft), color 0.25s;
+}
+.btn-primary {
+  background: var(--color-pulse);
+  color: #FFFFFF;
+  box-shadow: 0 0 24px -8px rgba(255, 77, 94, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.btn-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 36px -6px rgba(255, 77, 94, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.btn-secondary {
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg);
+  background: var(--color-hover);
+}
+.btn-secondary:hover {
+  transform: scale(1.02);
+  border-color: color-mix(in oklab, var(--color-fg) 30%, transparent);
+}
+.btn-ghost {
+  color: var(--color-fg-muted);
+}
+.btn-ghost:hover {
+  color: var(--color-fg);
+  background: var(--color-hover);
+}
+.btn-primary:active,
+.btn-secondary:active,
+.btn-ghost:active {
+  transform: scale(0.98);
+}
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── App surfaces ─────────────────────────────────────────────── */
+
+/* Bento tile: graphite surface, hairline with brighter top edge (DESIGN §5.5) */
+.tile {
+  position: relative;
+  background-color: color-mix(in oklab, var(--color-surface) 92%, transparent);
+  border: 1px solid var(--color-line);
+  border-top-color: var(--color-line-strong);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.35s var(--ease-out-soft), border-color 0.35s var(--ease-out-soft),
+    box-shadow 0.35s var(--ease-out-soft);
+}
+.tile-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-line-strong);
+  box-shadow: var(--shadow-elevation-low);
+}
+html.light .tile {
+  box-shadow: 0 1px 2px rgba(11, 15, 21, 0.04), 0 8px 24px -12px rgba(11, 15, 21, 0.10);
+}
+
+/* Slow ambient aurora behind app page headers */
+.app-aurora {
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 520px;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 60% at 20% 30%, rgba(255, 77, 94, 0.10), transparent 70%),
+    radial-gradient(35% 55% at 75% 20%, rgba(94, 225, 210, 0.08), transparent 70%);
+  filter: blur(20px);
+  animation: auroraDrift 24s ease-in-out infinite alternate;
+}
+html.light .app-aurora {
+  opacity: 0.6;
+}
+
+@keyframes auroraDrift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(3%, 2%, 0) scale(1.06); }
+}
+
+/* Skeleton shimmer */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-hover);
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  animation: shimmer 1.6s var(--ease-out-soft) infinite;
+}
+html.light .shimmer::after {
+  background: linear-gradient(90deg, transparent, rgba(11, 15, 21, 0.05), transparent);
+}
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* ECG trace used as a functional "working" indicator (streaming, loading) */
+@keyframes ecgTrace {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -240; }
+}
+.ecg-trace {
+  stroke-dasharray: 120 120;
+  animation: ecgTrace 1.6s linear infinite;
+}
+
+/* Soft "live" beacon — slow, calm ring (not a flashing alert) */
+@keyframes beacon {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.beacon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: beacon 2.4s var(--ease-out-soft) infinite;
+}
+
+/* Streaming caret */
+@keyframes caretBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.stream-caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.5ch;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--color-teal);
+  animation: caretBlink 1s steps(1) infinite;
+}
+
+/* ── Print: doctor visit sheet ───────────────────────────────── */
+@media print {
+  .no-print,
+  .noise-grain-overlay {
+    display: none !important;
+  }
+  html, body {
+    background: #FFFFFF !important;
+    color: #0B0F15 !important;
+  }
+  .print-sheet {
+    display: block !important;
+  }
+}
+.print-sheet {
+  display: none;
 }

@@ -1,18 +1,49 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "@/components/app/app-shell";
-import { SpotlightCard } from "@/components/ui/spotlight-card";
-import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Icon } from "@/components/ui/icon";
+import { Stagger, StaggerItem } from "@/components/ui/motion";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { ApiError, api, type Appointment, type Doctor, type Slot } from "@/lib/api";
 import { formatDateTime, formatTime } from "@/lib/format";
 import { initialsOf } from "@/lib/session";
 
-const dayFmt = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" });
+const weekdayFmt = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+const dayNumFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
 
-const errorMessage = (err: unknown, fallback: string): string =>
-  err instanceof Error ? err.message : fallback;
+const errorMessage = (err: unknown, fallback: string): string => (err instanceof Error ? err.message : fallback);
+
+/** Builds a minimal .ics file so the visit can be added to any calendar app. */
+function downloadIcs(appt: Appointment) {
+  if (!appt.slot) return;
+  const stamp = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//PulseOS//Appointments//EN",
+    "BEGIN:VEVENT",
+    `UID:${appt.id}@pulseos`,
+    `DTSTAMP:${stamp(appt.created_at)}`,
+    `DTSTART:${stamp(appt.slot.starts_at)}`,
+    `DTEND:${stamp(appt.slot.ends_at)}`,
+    `SUMMARY:Doctor visit — ${appt.doctor?.name ?? "PulseOS"}`,
+    "DESCRIPTION:Bring your PulseOS doctor visit sheet.",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+  const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "pulseos-visit.ics";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function AppointmentsPage() {
   const [doctors, setDoctors] = useState<Doctor[] | null>(null);
@@ -23,6 +54,7 @@ export default function AppointmentsPage() {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slotsVersion, setSlotsVersion] = useState(0);
+  const [justBooked, setJustBooked] = useState<Appointment | null>(null);
 
   const refreshAppointments = useCallback(async () => {
     try {
@@ -32,7 +64,6 @@ export default function AppointmentsPage() {
     }
   }, []);
 
-  // Initial load: doctors + my appointments
   useEffect(() => {
     let cancelled = false;
     Promise.all([api.doctors.list(), api.appointments.list()])
@@ -50,7 +81,6 @@ export default function AppointmentsPage() {
     };
   }, []);
 
-  // Slots for the selected doctor
   useEffect(() => {
     if (!selectedDocId) return;
     let cancelled = false;
@@ -58,7 +88,8 @@ export default function AppointmentsPage() {
       .slots(selectedDocId)
       .then((data) => {
         if (cancelled) return;
-        const upcoming = data.filter((s) => new Date(s.starts_at).getTime() > Date.now());
+        const now = Date.now();
+        const upcoming = data.filter((s) => new Date(s.starts_at).getTime() > now);
         setSlots(upcoming);
         setSelectedSlotId(upcoming[0]?.id ?? null);
       })
@@ -70,6 +101,16 @@ export default function AppointmentsPage() {
     };
   }, [selectedDocId, slotsVersion]);
 
+  // Group open slots by calendar day for the weekly grid
+  const days = useMemo(() => {
+    const groups = new Map<string, Slot[]>();
+    for (const s of slots ?? []) {
+      const key = new Date(s.starts_at).toDateString();
+      groups.set(key, [...(groups.get(key) ?? []), s]);
+    }
+    return Array.from(groups.entries()).slice(0, 7);
+  }, [slots]);
+
   const activeDoc = doctors?.find((d) => d.id === selectedDocId) ?? null;
   const activeSlot = slots?.find((s) => s.id === selectedSlotId) ?? null;
   const confirmed = appointments.filter((a) => a.status === "confirmed");
@@ -78,6 +119,7 @@ export default function AppointmentsPage() {
     if (id === selectedDocId) return;
     setSlots(null);
     setSelectedSlotId(null);
+    setJustBooked(null);
     setSelectedDocId(id);
   };
 
@@ -85,13 +127,13 @@ export default function AppointmentsPage() {
     if (!activeDoc || !activeSlot) return;
     setIsSubmitting(true);
     try {
-      await api.appointments.book(activeDoc.id, activeSlot.id);
-      toast.success(`Appointment confirmed with ${activeDoc.name}.`);
+      const appt = await api.appointments.book(activeDoc.id, activeSlot.id);
+      setJustBooked(appt);
       await refreshAppointments();
     } catch (err) {
       toast.error(
         err instanceof ApiError && err.status === 409
-          ? "That slot was just taken. Please pick another time."
+          ? "That time was just taken. Please pick another."
           : errorMessage(err, "Booking failed. Please try again."),
       );
     } finally {
@@ -104,6 +146,7 @@ export default function AppointmentsPage() {
     try {
       await api.appointments.cancel(id);
       toast.info("Appointment cancelled.");
+      if (justBooked?.id === id) setJustBooked(null);
       await refreshAppointments();
       setSlotsVersion((v) => v + 1);
     } catch (err) {
@@ -111,185 +154,249 @@ export default function AppointmentsPage() {
     }
   };
 
+  if (loadError) {
+    return (
+      <AppShell>
+        <EmptyState tone="error" icon="alert" title="We couldn’t load physicians" description={loadError} />
+      </AppShell>
+    );
+  }
+
   return (
-    <AppShell title="Appointments">
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/8">
-          <div>
-            <span className="text-xs font-mono text-[#5EE1D2] uppercase tracking-wider">Clinical Consultations</span>
-            <h1 className="text-3xl font-semibold tracking-tight text-[#F2F4F7] mt-1">Physician Appointments</h1>
-            <p className="text-sm text-[#8B93A1] mt-1">
-              Book a follow-up with a physician and bring your report questions with you.
-            </p>
-          </div>
-        </div>
+    <AppShell>
+      <PageHeader
+        eyebrow="Appointments"
+        title="Talk it through with a doctor"
+        description="Pick a physician and a time. Bring your printed visit sheet so nothing gets forgotten."
+      />
 
-        {loadError && (
-          <div className="p-6 rounded-[28px] bg-[#FF4D5E]/10 border border-[#FF4D5E]/30 text-center text-sm text-[#F2F4F7]" role="alert">
-            {loadError}
-          </div>
-        )}
-
-        {/* Confirmed Bookings */}
-        {confirmed.length > 0 && (
-          <div className="p-6 rounded-[28px] bg-[#12161D]/80 border border-white/8 space-y-4">
-            <h2 className="text-base font-semibold text-[#F2F4F7] flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#5EE1D2]" />
-              Your Scheduled Consultations ({confirmed.length})
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {confirmed.map((b) => (
-                <div
-                  key={b.id}
-                  className="p-4 rounded-2xl bg-white/[0.03] border border-white/6 flex items-center justify-between gap-3 min-w-0"
+      {/* Upcoming visits */}
+      {confirmed.length > 0 && (
+        <section className="mb-10" aria-labelledby="upcoming-heading">
+          <h2 id="upcoming-heading" className="mb-4 text-lg font-semibold tracking-tight">
+            Upcoming visits
+          </h2>
+          <Stagger className="grid gap-3 md:grid-cols-2">
+            {confirmed.map((b) => (
+              <StaggerItem key={b.id} className="tile flex items-center gap-4 rounded-card-sm p-4">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-muted text-amber">
+                  <Icon name="calendar" size={18} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-fg">{b.doctor?.name ?? "Physician"}</p>
+                  {b.slot && <p className="mt-0.5 font-mono text-xs text-fg-muted">{formatDateTime(b.slot.starts_at)}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => downloadIcs(b)}
+                  className="grid h-9 w-9 place-items-center rounded-full text-fg-muted transition-colors hover:bg-hover hover:text-fg"
+                  aria-label="Add to calendar"
+                  title="Add to calendar"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm text-[#F2F4F7] truncate">{b.doctor?.name ?? "Physician"}</p>
-                    <p className="text-xs text-[#8B93A1] truncate">{b.doctor?.specialty}</p>
-                    {b.slot && (
-                      <p className="text-xs font-mono text-[#5EE1D2] mt-1.5 truncate">{formatDateTime(b.slot.starts_at)}</p>
+                  <Icon name="calendar" size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleCancelBooking(b.id)}
+                  className="h-9 rounded-full px-3 text-sm text-fg-muted transition-colors hover:bg-pulse-muted hover:text-pulse"
+                >
+                  Cancel
+                </button>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        </section>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Step 1 — doctors (carousel on mobile, list on desktop) */}
+        <section className="lg:col-span-4" aria-labelledby="doctor-heading">
+          <h2 id="doctor-heading" className="mb-4 flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-teal-muted font-mono text-xs text-teal">1</span>
+            Choose a physician
+          </h2>
+          <div
+            className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 lg:mx-0 lg:block lg:space-y-3 lg:overflow-visible lg:px-0"
+            role="radiogroup"
+            aria-label="Physicians"
+          >
+            {doctors === null &&
+              [0, 1].map((i) => <Skeleton key={i} className="h-32 w-[82%] shrink-0 rounded-card-sm lg:w-full" />)}
+            {doctors?.length === 0 && <p className="text-sm text-fg-muted">No physicians yet — run the API seed script to add demo doctors.</p>}
+            {doctors?.map((doc) => {
+              const selected = doc.id === selectedDocId;
+              return (
+                <button
+                  key={doc.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => selectDoctor(doc.id)}
+                  className={`tile w-[82%] shrink-0 snap-start rounded-card-sm p-5 text-left transition-colors lg:w-full ${
+                    selected ? "!border-teal/60 shadow-glow-teal" : "hover:!border-line-strong"
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <span
+                      className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-sm font-semibold ${
+                        selected ? "bg-teal text-ink" : "bg-hover text-fg"
+                      }`}
+                    >
+                      {initialsOf(doc.name.split(",")[0] ?? doc.name)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-fg">{doc.name}</p>
+                      <p className="mt-0.5 text-sm text-teal">{doc.specialty}</p>
+                      {doc.bio && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-fg-muted">{doc.bio}</p>}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Step 2 — weekly slot grid + confirm */}
+        <section className="lg:col-span-8" aria-labelledby="time-heading">
+          <h2 id="time-heading" className="mb-4 flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-teal-muted font-mono text-xs text-teal">2</span>
+            Pick a time
+          </h2>
+
+          <div className="tile p-6 sm:p-7">
+            <AnimatePresence mode="wait">
+              {justBooked ? (
+                <motion.div
+                  key="done"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex flex-col items-center py-10 text-center"
+                >
+                  <svg viewBox="0 0 52 52" className="h-16 w-16 text-teal" aria-hidden="true">
+                    <motion.circle
+                      cx="26"
+                      cy="26"
+                      r="24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                    />
+                    <motion.path
+                      d="M15 27l7 7 15-15"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.4, delay: 0.45 }}
+                    />
+                  </svg>
+                  <h3 className="mt-5 text-xl font-semibold tracking-tight text-fg">You’re booked</h3>
+                  <p className="mt-1.5 text-fg-muted">
+                    {justBooked.doctor?.name} · {justBooked.slot ? formatDateTime(justBooked.slot.starts_at) : ""}
+                  </p>
+                  <p className="mt-1 text-sm text-fg-muted">A confirmation email is on its way.</p>
+                  <div className="mt-6 flex flex-wrap justify-center gap-3">
+                    <button type="button" onClick={() => downloadIcs(justBooked)} className="btn-secondary">
+                      <Icon name="calendar" size={16} /> Add to calendar
+                    </button>
+                    <button type="button" onClick={() => setJustBooked(null)} className="btn-ghost">
+                      Book another
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div key="pick" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <p className="text-sm text-fg-muted">
+                    Booking with <span className="font-medium text-fg">{activeDoc?.name ?? "—"}</span>
+                  </p>
+
+                  <div className="mt-5">
+                    {slots === null ? (
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                          <Skeleton key={i} className="h-12" />
+                        ))}
+                      </div>
+                    ) : days.length === 0 ? (
+                      <p className="py-10 text-center text-sm text-fg-muted">No open times for this physician right now.</p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-7" role="radiogroup" aria-label="Available times">
+                        {days.map(([key, daySlots]) => {
+                          const date = new Date(daySlots[0].starts_at);
+                          return (
+                            <div key={key}>
+                              <p className="text-xs font-medium text-fg-muted">{weekdayFmt.format(date)}</p>
+                              <p className="mb-2 font-mono text-xs text-fg-muted/80">{dayNumFmt.format(date)}</p>
+                              <div className="space-y-2">
+                                {daySlots.map((slot) => {
+                                  const selected = slot.id === selectedSlotId;
+                                  return (
+                                    <button
+                                      key={slot.id}
+                                      type="button"
+                                      role="radio"
+                                      aria-checked={selected}
+                                      aria-label={formatDateTime(slot.starts_at)}
+                                      onClick={() => setSelectedSlotId(slot.id)}
+                                      className={`relative h-11 w-full rounded-control border text-sm font-medium tabular-nums transition-colors ${
+                                        selected
+                                          ? "border-teal text-ink"
+                                          : "border-line text-fg hover:border-line-strong hover:bg-hover"
+                                      }`}
+                                    >
+                                      {selected && (
+                                        <motion.span
+                                          layoutId="slot-active"
+                                          className="absolute inset-0 rounded-control bg-teal"
+                                          transition={{ type: "tween", duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                                          aria-hidden="true"
+                                        />
+                                      )}
+                                      <span className="relative">{formatTime(slot.starts_at)}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleCancelBooking(b.id)}
-                    className="text-xs text-[#FF4D5E] hover:underline px-2 py-1 shrink-0"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* 2-Column Booking Wizard */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left: Physician Directory */}
-          <div className="lg:col-span-5 space-y-4">
-            <h2 className="text-lg font-semibold text-[#F2F4F7]">1. Select Physician</h2>
-            <div className="space-y-3" role="radiogroup" aria-label="Physician selection">
-              {doctors === null && !loadError &&
-                [0, 1].map((i) => <div key={i} className="h-28 rounded-[28px] bg-white/[0.04] animate-pulse" />)}
-              {doctors?.length === 0 && (
-                <p className="text-sm text-[#8B93A1]">No physicians available yet. Run the API seed script to add demo doctors.</p>
-              )}
-              {doctors?.map((doc) => {
-                const isSelected = selectedDocId === doc.id;
-                return (
-                  <SpotlightCard
-                    key={doc.id}
-                    role="radio"
-                    aria-checked={isSelected}
-                    tabIndex={0}
-                    onClick={() => selectDoctor(doc.id)}
-                    onKeyDown={(e: React.KeyboardEvent) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        selectDoctor(doc.id);
-                      }
-                    }}
-                    className={`p-5 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2] ${
-                      isSelected
-                        ? "bg-[#12161D] border-[#5EE1D2]/50 shadow-md"
-                        : "bg-[#12161D]/60 hover:bg-[#12161D]/90 border-white/8"
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-11 h-11 rounded-full bg-[#5EE1D2]/15 border border-[#5EE1D2]/30 text-[#5EE1D2] font-semibold flex items-center justify-center shrink-0">
-                        {initialsOf(doc.name.split(",")[0] ?? doc.name)}
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <p className="font-semibold text-sm text-[#F2F4F7] truncate">{doc.name}</p>
-                        <p className="text-xs text-[#5EE1D2] font-medium">{doc.specialty}</p>
-                        {doc.bio && <p className="text-xs text-[#8B93A1] leading-relaxed line-clamp-2">{doc.bio}</p>}
-                      </div>
+                  <div className="mt-8 flex flex-col items-start justify-between gap-4 border-t border-line pt-6 sm:flex-row sm:items-center">
+                    <div className="text-sm">
+                      <p className="text-fg-muted">Selected</p>
+                      <p className="mt-0.5 font-medium text-fg">{activeSlot ? formatDateTime(activeSlot.starts_at) : "—"}</p>
                     </div>
-                  </SpotlightCard>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right: Availability Slots & Confirmation */}
-          <div className="lg:col-span-7 space-y-4">
-            <h2 className="text-lg font-semibold text-[#F2F4F7]">2. Choose Time & Confirm</h2>
-
-            <SpotlightCard className="p-6 sm:p-8 bg-[#12161D]/90 backdrop-blur-md space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-white/8">
-                <div>
-                  <p className="text-xs font-mono text-[#8B93A1] uppercase tracking-wider">Booking with</p>
-                  <p className="text-base font-semibold text-[#F2F4F7] mt-0.5">{activeDoc?.name ?? "—"}</p>
-                </div>
-              </div>
-
-              {/* Slot Grid */}
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-[#8B93A1] uppercase tracking-wider">Available Slots</p>
-                {slots === null ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-hidden="true">
-                    {[0, 1, 2, 3].map((i) => (
-                      <div key={i} className="h-16 rounded-xl bg-white/[0.04] animate-pulse" />
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => void handleBooking()}
+                      disabled={!activeSlot || isSubmitting}
+                      className="btn-primary w-full sm:w-auto"
+                    >
+                      {isSubmitting ? "Confirming…" : "Confirm appointment"}
+                    </button>
                   </div>
-                ) : slots.length === 0 ? (
-                  <p className="text-sm text-[#8B93A1]">No open slots for this physician right now.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label="Available time slots">
-                    {slots.map((slot) => {
-                      const isSelected = selectedSlotId === slot.id;
-                      return (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={isSelected}
-                          onClick={() => setSelectedSlotId(slot.id)}
-                          className={`p-3.5 rounded-xl text-left border transition-all ${
-                            isSelected
-                              ? "bg-[#5EE1D2]/15 border-[#5EE1D2] text-[#F2F4F7] shadow-sm"
-                              : "bg-[#0B0D12] border-white/10 text-[#8B93A1] hover:border-white/20 hover:text-[#F2F4F7]"
-                          }`}
-                        >
-                          <p className="text-xs text-[#8B93A1]">{dayFmt.format(new Date(slot.starts_at))}</p>
-                          <p className="text-sm font-semibold text-[#F2F4F7] mt-0.5">
-                            {formatTime(slot.starts_at)} – {formatTime(slot.ends_at)}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-4 border-t border-white/8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-xs text-[#8B93A1]">
-                  <span>Selected: </span>
-                  <strong className="text-[#F2F4F7]">{activeSlot ? formatDateTime(activeSlot.starts_at) : "—"}</strong>
-                </div>
-
-                <Button
-                  onClick={() => void handleBooking()}
-                  isLoading={isSubmitting}
-                  disabled={!activeSlot || isSubmitting}
-                  size="md"
-                  variant="primary"
-                  className="w-full sm:w-auto bg-[#FF4D5E] text-white shadow-lg shadow-[#FF4D5E]/20"
-                >
-                  Confirm Appointment
-                </Button>
-              </div>
-            </SpotlightCard>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
-
-        {/* Medical Notice */}
-        <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/6 text-center text-xs text-[#8B93A1]">
-          PulseOS provides scheduling coordination and health report organization. Appointments are conducted directly
-          with licensed medical practitioners.
-        </div>
+          <p className="mt-4 flex items-center gap-2 text-xs text-fg-muted">
+            <Chip variant="neutral" size="sm" dot={false}>
+              Demo
+            </Chip>
+            Synthetic physicians and times for demonstration only.
+          </p>
+        </section>
       </div>
     </AppShell>
   );

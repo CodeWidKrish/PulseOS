@@ -3,11 +3,19 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app/app-shell";
-import { SpotlightCard } from "@/components/ui/spotlight-card";
-import { api, type Appointment, type ReportListItem, type Vital, type VitalSummary } from "@/lib/api";
-import { REPORT_STATUS_LABEL, REPORT_STATUS_TONE, formatDate, formatDateTime } from "@/lib/format";
+import { HealthRing } from "@/components/app/health-ring";
+import { TrendChart } from "@/components/app/trend-chart";
+import { Chip } from "@/components/ui/chip";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Icon, type IconName } from "@/components/ui/icon";
+import { CountUp, Stagger, StaggerItem } from "@/components/ui/motion";
+import { PageHeader } from "@/components/ui/page-header";
+import { Segmented } from "@/components/ui/segmented";
+import { Skeleton } from "@/components/ui/skeleton";
+import { api, type Appointment, type ReportListItem, type Vital, type VitalSummary, type VitalType } from "@/lib/api";
+import { REPORT_STATUS_LABEL, formatDate, formatDateTime } from "@/lib/format";
 import { useSessionUser } from "@/lib/session";
-import { sparklinePath } from "@/lib/vitals";
+import { VITAL_META } from "@/lib/vitals";
 
 type Range = "7d" | "30d";
 
@@ -16,25 +24,35 @@ interface DashboardData {
   summary: VitalSummary[];
   /** Confirmed, future appointments sorted soonest first. */
   upcoming: Appointment[];
+  greeting: string;
+  /** Whole days until the next appointment, computed at load time. */
+  daysToNext: number | null;
 }
 
-const RING_CIRCUMFERENCE = 264;
+const STATUS_CHIP: Record<ReportListItem["status"], "normal" | "caution" | "alert" | "neutral"> = {
+  done: "normal",
+  pending: "neutral",
+  processing: "caution",
+  error: "alert",
+};
+
+const TREND_ICON: Record<VitalSummary["trend"], IconName> = { up: "trendUp", down: "trendDown", stable: "minus" };
 
 function scoreLabel(score: number): string {
   if (score >= 80) return "Mostly in range";
-  if (score >= 60) return "Some readings to watch";
+  if (score >= 60) return "A few readings to watch";
   return "Worth discussing with a doctor";
 }
 
-function daysUntil(iso: string): string {
-  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
-  if (days <= 0) return "Today";
-  return days === 1 ? "Tomorrow" : `In ${days} days`;
+function greetingFor(hour: number): string {
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }
 
 export default function DashboardPage() {
   return (
-    <AppShell title="Dashboard">
+    <AppShell>
       <DashboardContent />
     </AppShell>
   );
@@ -51,14 +69,16 @@ function DashboardContent() {
     let cancelled = false;
     Promise.all([api.reports.list(), api.vitals.summary(), api.appointments.list()])
       .then(([reports, summary, appointments]) => {
-        const now = Date.now();
+        const now = new Date();
         const upcoming = appointments
-          .filter((a) => a.status === "confirmed" && a.slot && new Date(a.slot.starts_at).getTime() > now)
+          .filter((a) => a.status === "confirmed" && a.slot && new Date(a.slot.starts_at) > now)
           .sort((a, b) => (a.slot?.starts_at ?? "").localeCompare(b.slot?.starts_at ?? ""));
-        if (!cancelled) setData({ reports, summary, upcoming });
+        const next = upcoming[0]?.slot?.starts_at;
+        const daysToNext = next ? Math.max(0, Math.ceil((new Date(next).getTime() - now.getTime()) / 86_400_000)) : null;
+        if (!cancelled) setData({ reports, summary, upcoming, greeting: greetingFor(now.getHours()), daysToNext });
       })
       .catch((err: unknown) => {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : "Could not load your dashboard.");
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : "Could not load your overview.");
       });
     return () => {
       cancelled = true;
@@ -80,243 +100,226 @@ function DashboardContent() {
     };
   }, [range]);
 
+  const firstName = user.full_name.replace(/^Dr\.?\s+/i, "").split(" ")[0];
   const healthScore = data?.summary[0]?.health_score ?? null;
-  const vitalCount = data?.summary.reduce((n, s) => n + s.readings.length, 0) ?? 0;
+  const readingCount = data?.summary.reduce((n, s) => n + s.readings.length, 0) ?? 0;
   const hrSeries = heartRate[range];
   const hrLatest = hrSeries?.at(-1);
-  const hrAvg = hrSeries?.length ? Math.round(hrSeries.reduce((s, v) => s + v.value_1, 0) / hrSeries.length) : null;
   const nextAppt = data?.upcoming[0] ?? null;
-  const recentReports = data?.reports.slice(0, 3) ?? [];
-  const firstName = user.full_name.replace(/^Dr\.?\s+/i, "").split(" ")[0];
+  const summaryFor = (t: VitalType) => data?.summary.find((s) => s.type === t);
+
+  if (loadError) {
+    return (
+      <EmptyState
+        tone="error"
+        icon="alert"
+        title="We couldn’t load your overview"
+        description={loadError}
+        action={
+          <button type="button" onClick={() => window.location.reload()} className="btn-secondary">
+            Try again
+          </button>
+        }
+      />
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Top Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/8">
-        <div>
-          <span className="text-xs font-mono text-[#5EE1D2] uppercase tracking-wider">Your Health Overview</span>
-          <h1 className="text-3xl font-semibold tracking-tight text-[#F2F4F7] mt-1">Welcome back, {firstName}</h1>
-          <p className="text-sm text-[#8B93A1] mt-1">
-            Track your trends and upcoming follow-ups in one calm place.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/reports"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold bg-[#FF4D5E] text-white hover:bg-[#ff3b4e] transition-all hover:scale-[1.02] shadow-lg shadow-[#FF4D5E]/20"
-          >
-            <span>+</span>
-            <span>Upload New Lab Report</span>
+    <>
+      <PageHeader
+        eyebrow={data ? data.greeting : "Overview"}
+        title={<>Welcome back, {firstName}</>}
+        description="Your latest readings, reports and follow-ups — in one calm place."
+        action={
+          <Link href="/reports" className="btn-primary">
+            <Icon name="upload" size={16} />
+            Upload a lab report
           </Link>
-        </div>
-      </div>
+        }
+      />
 
-      {loadError && (
-        <div className="p-6 rounded-[28px] bg-[#FF4D5E]/10 border border-[#FF4D5E]/30 text-center text-sm text-[#F2F4F7]" role="alert">
-          {loadError}
-        </div>
-      )}
-
-      {/* Top 3 Metric Tiles (Bento Layout) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Tile 1: Health Score */}
-        <SpotlightCard className="p-6 bg-[#12161D]/90 backdrop-blur-md flex flex-col justify-between">
+      <Stagger className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Hero: health score (top-left = primary insight, DESIGN §3.4) */}
+        <StaggerItem className="tile tile-interactive flex flex-col p-7 lg:col-span-5 lg:row-span-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-[#8B93A1] uppercase tracking-wider">Health Score</span>
+            <p className="text-sm font-medium text-fg-muted">Health score</p>
+            {healthScore !== null && (
+              <Chip variant={healthScore >= 80 ? "normal" : "caution"} size="sm">
+                {healthScore >= 80 ? "Steady" : "Watch"}
+              </Chip>
+            )}
           </div>
 
-          <div className="flex items-center gap-5 my-4">
-            <div className="relative w-24 h-24 flex items-center justify-center">
-              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" aria-hidden="true">
-                <circle cx="50" cy="50" r="42" stroke="rgba(255,255,255,0.08)" strokeWidth="10" fill="none" />
-                {healthScore !== null && (
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="42"
-                    stroke={healthScore >= 80 ? "#5EE1D2" : "#FFB86B"}
-                    strokeWidth="10"
-                    fill="none"
-                    strokeDasharray={RING_CIRCUMFERENCE}
-                    strokeDashoffset={RING_CIRCUMFERENCE * (1 - healthScore / 100)}
-                    strokeLinecap="round"
-                    className="transition-all duration-1000 ease-out"
-                  />
-                )}
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold font-mono text-[#F2F4F7]">{healthScore ?? "—"}</span>
-                <span className="text-[10px] text-[#8B93A1]">/100</span>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold text-[#F2F4F7]">
-                {healthScore !== null ? scoreLabel(healthScore) : data ? "No vitals yet" : "Loading…"}
+          <div className="flex flex-1 flex-col items-center justify-center gap-6 py-8 sm:flex-row sm:justify-start lg:flex-col lg:items-center">
+            {data ? <HealthRing score={healthScore} size={168} /> : <Skeleton variant="circle" className="w-[168px]" />}
+            <div className="text-center sm:text-left lg:text-center">
+              <p className="text-xl font-semibold tracking-tight text-fg">
+                {healthScore !== null ? scoreLabel(healthScore) : data ? "No vitals logged yet" : "Loading…"}
               </p>
-              <p className="text-xs text-[#8B93A1] mt-1 leading-relaxed">
+              <p className="mt-1.5 text-sm text-fg-muted">
                 {healthScore !== null
-                  ? `Rule-based score from your latest vitals (${vitalCount} recent readings).`
-                  : "Log a few vitals to see your score."}
+                  ? `From your latest vitals · ${readingCount} recent readings`
+                  : "Log a few readings to see your score."}
               </p>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-white/6 text-xs flex items-center justify-between">
-            <Link href="/vitals" className="text-[#5EE1D2] hover:underline">
-              Log vitals →
-            </Link>
-          </div>
-        </SpotlightCard>
+          <details className="group rounded-card-sm border border-line bg-hover px-4 py-3 text-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-fg-muted marker:hidden hover:text-fg">
+              <span className="flex items-center gap-2">
+                <Icon name="info" size={15} /> How is this calculated?
+              </span>
+              <Icon name="chevronRight" size={15} className="transition-transform duration-300 group-open:rotate-90" />
+            </summary>
+            <p className="mt-3 leading-relaxed text-fg-muted">
+              A transparent rule, not an AI guess: heart rate, blood pressure and glucose each earn up to 25 points
+              when your latest reading sits in its reference range, with points easing off the further it drifts.
+            </p>
+          </details>
+        </StaggerItem>
 
-        {/* Tile 2: Resting Heart Rate */}
-        <SpotlightCard className="p-6 bg-[#12161D]/90 backdrop-blur-md flex flex-col justify-between">
+        {/* Heart rate trend */}
+        <StaggerItem className="tile tile-interactive p-7 lg:col-span-7">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-medium text-fg-muted">
+                <Icon name="heartPulse" size={16} className="text-pulse" /> Resting heart rate
+              </p>
+              <p className="mt-2 flex items-baseline gap-2">
+                {hrLatest ? (
+                  <CountUp value={hrLatest.value_1} decimals={hrLatest.value_1 % 1 ? 1 : 0} className="text-4xl font-semibold tracking-tight" />
+                ) : (
+                  <span className="text-4xl font-semibold">—</span>
+                )}
+                <span className="font-mono text-sm text-fg-muted">bpm</span>
+              </p>
+            </div>
+            <Segmented
+              size="sm"
+              label="Heart rate range"
+              value={range}
+              onChange={setRange}
+              options={[
+                { value: "7d", label: "7 days" },
+                { value: "30d", label: "30 days" },
+              ]}
+            />
+          </div>
+          <div className="mt-4">
+            {hrSeries === undefined ? (
+              <Skeleton className="h-[180px] w-full" />
+            ) : hrSeries.length > 1 ? (
+              <TrendChart
+                key={range}
+                data={hrSeries.map((v) => ({ t: v.recorded_at, v: v.value_1 }))}
+                band={[60, 100]}
+                unit="bpm"
+                height={180}
+              />
+            ) : (
+              <p className="grid h-[180px] place-items-center text-sm text-fg-muted">Not enough readings in this period yet.</p>
+            )}
+          </div>
+        </StaggerItem>
+
+        {/* Quick vitals */}
+        {(["bp", "glucose"] as const).map((type) => {
+          const meta = VITAL_META.find((m) => m.type === type);
+          const s = summaryFor(type);
+          const latest = s?.readings.at(-1);
+          return (
+            <StaggerItem key={type} className="tile tile-interactive p-6 lg:col-span-2">
+              <p className="flex items-center gap-2 text-sm font-medium text-fg-muted">
+                <Icon name={type === "bp" ? "gauge" : "droplet"} size={16} className="text-teal" />
+                {type === "bp" ? "Blood pressure" : "Glucose"}
+              </p>
+              <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight">
+                {latest ? (type === "bp" ? `${Math.round(latest.value_1)}/${Math.round(latest.value_2 ?? 0)}` : latest.value_1) : "—"}
+              </p>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-fg-muted">
+                <span className="font-mono">{meta?.unit}</span>
+                {s && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <Icon name={TREND_ICON[s.trend]} size={13} />
+                    <span>{s.trend === "stable" ? "Stable" : s.trend === "up" ? "Rising" : "Falling"}</span>
+                  </>
+                )}
+              </p>
+            </StaggerItem>
+          );
+        })}
+
+        {/* Next appointment */}
+        <StaggerItem className="tile tile-interactive flex flex-col justify-between p-6 lg:col-span-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-[#8B93A1] uppercase tracking-wider">Resting Heart Rate</span>
-            <div className="flex bg-black/40 p-0.5 rounded-full text-[11px]" role="group" aria-label="Time range">
-              {(["7d", "30d"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  aria-pressed={range === r}
-                  onClick={() => setRange(r)}
-                  className={`px-2.5 py-0.5 rounded-full transition-colors ${
-                    range === r ? "bg-[#5EE1D2] text-[#07090D] font-bold" : "text-[#8B93A1]"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="my-3">
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold font-mono text-[#F2F4F7] tabular-nums">{hrLatest?.value_1 ?? "—"}</span>
-              <span className="text-xs font-mono text-[#8B93A1]">BPM</span>
-              {hrAvg !== null && <span className="text-xs text-[#8B93A1] ml-2">avg {hrAvg}</span>}
-            </div>
-
-            <div className="mt-3 h-12 w-full">
-              {hrSeries && hrSeries.length > 0 ? (
-                <svg viewBox="0 0 300 50" className="w-full h-full overflow-visible" role="img" aria-label="Heart rate trend">
-                  <path
-                    d={sparklinePath(hrSeries.map((v) => v.value_1))}
-                    fill="none"
-                    stroke="#5EE1D2"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              ) : (
-                <p className="text-xs text-[#8B93A1]">{hrSeries ? "No heart-rate readings in this period." : ""}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-white/6 text-xs text-[#8B93A1] flex items-center justify-between">
-            <span>{hrSeries?.length ?? 0} readings</span>
-            <Link href="/vitals" className="text-[#5EE1D2] hover:underline">
-              All vitals →
-            </Link>
-          </div>
-        </SpotlightCard>
-
-        {/* Tile 3: Upcoming Appointment */}
-        <SpotlightCard className="p-6 bg-[#12161D]/90 backdrop-blur-md flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-[#8B93A1] uppercase tracking-wider">Next Appointment</span>
-            {nextAppt?.slot && (
-              <span className="text-xs font-mono text-[#FFB86B] bg-[#FFB86B]/10 px-2 py-0.5 rounded-full">
-                {daysUntil(nextAppt.slot.starts_at)}
+            <p className="flex items-center gap-2 text-sm font-medium text-fg-muted">
+              <Icon name="calendar" size={16} className="text-amber" /> Next visit
+            </p>
+            {data?.daysToNext != null && (
+              <span className="font-mono text-xs text-amber">
+                {data.daysToNext === 0 ? "Today" : data.daysToNext === 1 ? "Tomorrow" : `In ${data.daysToNext} days`}
               </span>
             )}
           </div>
-
-          <div className="my-3 space-y-1.5">
-            {nextAppt ? (
-              <>
-                <p className="text-lg font-semibold text-[#F2F4F7]">{nextAppt.doctor?.name}</p>
-                <p className="text-xs text-[#8B93A1]">{nextAppt.doctor?.specialty}</p>
-                {nextAppt.slot && (
-                  <div className="mt-2 p-3 rounded-xl bg-black/30 border border-white/5">
-                    <p className="text-xs text-[#F2F4F7] font-medium">{formatDateTime(nextAppt.slot.starts_at)}</p>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-[#8B93A1]">{data ? "Nothing booked yet." : "Loading…"}</p>
-            )}
-          </div>
-
-          <div className="pt-3 border-t border-white/6 text-xs flex items-center justify-between">
-            <Link href="/appointments" className="text-[#5EE1D2] hover:underline">
-              {nextAppt ? "Manage appointment →" : "Book a physician →"}
-            </Link>
-          </div>
-        </SpotlightCard>
-      </div>
-
-      {/* Recent Reports */}
-      <div className="p-6 sm:p-8 rounded-[28px] bg-[#12161D]/80 border border-white/8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-[#F2F4F7]">Recent Lab Reports</h2>
-            <p className="text-xs text-[#8B93A1] mt-0.5">
-              Every value translated into plain language with physician discussion points.
-            </p>
-          </div>
-          <Link href="/reports" className="text-xs font-medium text-[#5EE1D2] hover:underline flex items-center gap-1">
-            View all reports ({data?.reports.length ?? 0}) →
-          </Link>
-        </div>
-
-        <div className="space-y-3">
-          {data && recentReports.length === 0 && (
-            <p className="text-sm text-[#8B93A1]">
-              No reports yet.{" "}
-              <Link href="/reports" className="text-[#5EE1D2] hover:underline">
-                Upload your first one
-              </Link>
-              .
-            </p>
+          {nextAppt ? (
+            <div className="mt-4">
+              <p className="font-semibold leading-snug text-fg">{nextAppt.doctor?.name}</p>
+              {nextAppt.slot && <p className="mt-1 font-mono text-xs text-fg-muted">{formatDateTime(nextAppt.slot.starts_at)}</p>}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-fg-muted">{data ? "Nothing booked yet." : "Loading…"}</p>
           )}
-          {recentReports.map((rep) => (
-            <Link
-              key={rep.id}
-              href={`/reports/${rep.id}`}
-              className="block p-4 sm:p-5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/6 hover:border-white/15 transition-all group"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold text-sm sm:text-base text-[#F2F4F7] group-hover:text-[#5EE1D2] transition-colors truncate">
-                    {rep.filename}
-                  </span>
-                  <span className="text-xs text-[#8B93A1]">·</span>
-                  <span className="text-xs font-mono text-[#8B93A1] shrink-0">{formatDate(rep.created_at)}</span>
-                </div>
+          <Link href="/appointments" className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-teal hover:underline">
+            {nextAppt ? "Manage" : "Book a visit"} <Icon name="arrowRight" size={14} />
+          </Link>
+        </StaggerItem>
 
-                <div className="flex items-center gap-3 shrink-0">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${REPORT_STATUS_TONE[rep.status]}`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                    {REPORT_STATUS_LABEL[rep.status]}
-                  </span>
-                  <span className="text-xs text-[#8B93A1] group-hover:translate-x-1 transition-transform">→</span>
-                </div>
-              </div>
+        {/* Recent reports */}
+        <StaggerItem className="tile p-6 sm:p-7 lg:col-span-12">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold tracking-tight">Recent lab reports</h2>
+            <Link href="/reports" className="inline-flex items-center gap-1 text-sm font-medium text-teal hover:underline">
+              View all <Icon name="arrowRight" size={14} />
             </Link>
-          ))}
-        </div>
-      </div>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {!data &&
+              [0, 1, 2].map((i) => <Skeleton key={i} className="h-[92px]" />)}
+            {data && data.reports.length === 0 && (
+              <p className="text-sm text-fg-muted md:col-span-3">
+                No reports yet —{" "}
+                <Link href="/reports" className="text-teal hover:underline">
+                  upload your first one
+                </Link>
+                .
+              </p>
+            )}
+            {data?.reports.slice(0, 3).map((rep) => (
+              <Link
+                key={rep.id}
+                href={`/reports/${rep.id}`}
+                className="group rounded-card-sm border border-line bg-hover p-4 transition-colors hover:border-line-strong"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface text-fg-muted group-hover:text-teal">
+                    <Icon name="report" size={17} />
+                  </span>
+                  <Chip variant={STATUS_CHIP[rep.status]} size="sm">
+                    {REPORT_STATUS_LABEL[rep.status]}
+                  </Chip>
+                </div>
+                <p className="mt-3 truncate text-sm font-medium text-fg">{rep.filename}</p>
+                <p className="mt-0.5 font-mono text-xs text-fg-muted">{formatDate(rep.created_at)}</p>
+              </Link>
+            ))}
+          </div>
+        </StaggerItem>
+      </Stagger>
 
-      {/* Non-Diagnostic Disclaimer */}
-      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/6 text-center text-xs text-[#8B93A1]">
-        PulseOS explains information and does not provide medical advice. Consult your doctor for medical decisions.
-      </div>
-    </div>
+      <p className="mt-10 text-center text-xs text-fg-muted">
+        PulseOS explains information and does not provide medical advice.
+      </p>
+    </>
   );
 }

@@ -18,7 +18,7 @@ export function Skeleton({
   return (
     <div
       aria-hidden="true"
-      className={`bg-white/[0.07] animate-pulse ${variantStyles} ${className}`}
+      className={`shimmer ${variantStyles} ${className}`}
       {...props}
     />
   );
