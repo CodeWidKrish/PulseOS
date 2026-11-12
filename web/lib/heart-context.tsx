@@ -8,6 +8,7 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
+import { renderChestBed, renderHeartSound } from "./heart-sound";
 
 export type BeatListener = (strength: number, isDub?: boolean) => void;
 
@@ -65,7 +66,28 @@ function getInitialVolume(): number {
   return 0.6;
 }
 
-export function HeartProvider({ children }: { children: React.ReactNode }) {
+const VARIANTS = 4;
+
+function readSoundPreference(): boolean | null {
+  try {
+    const stored = localStorage.getItem("pulseos_sound_enabled");
+    return stored === null ? null : stored === "true";
+  } catch {
+    return null;
+  }
+}
+
+interface HeartProviderProps {
+  children: React.ReactNode;
+  /**
+   * Start the heartbeat sound on the visitor's first click, tap or key press.
+   * Browsers block audio before any interaction, so this is the earliest it can play.
+   * Skipped if the visitor previously muted it.
+   */
+  startOnFirstInteraction?: boolean;
+}
+
+export function HeartProvider({ children, startOnFirstInteraction = false }: HeartProviderProps) {
   const [bpm, setBpm] = useState<number>(72);
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(false);
   const [volume, setVolumeState] = useState<number>(getInitialVolume);
@@ -79,6 +101,8 @@ export function HeartProvider({ children }: { children: React.ReactNode }) {
   const convolverRef = useRef<ConvolverNode | null>(null);
   const wetGainRef = useRef<GainNode | null>(null);
   const dryGainRef = useRef<GainNode | null>(null);
+  const buffersRef = useRef<{ s1: AudioBuffer[]; s2: AudioBuffer[] } | null>(null);
+  const bedGainRef = useRef<GainNode | null>(null);
 
   const schedulerTimerRef = useRef<NodeJS.Timeout | null>(null);
   const nextBeatTimeRef = useRef<number>(0);
@@ -160,6 +184,28 @@ export function HeartProvider({ children }: { children: React.ReactNode }) {
       masterLowpass.connect(compressor);
       compressor.connect(masterGain);
       masterGain.connect(ctx.destination);
+
+      // 6. Pre-rendered realistic heart sounds (a few variants each, see heart-sound.ts)
+      const toBuffer = (samples: Float32Array) => {
+        const buf = ctx.createBuffer(1, samples.length, ctx.sampleRate);
+        buf.copyToChannel(samples as Float32Array<ArrayBuffer>, 0);
+        return buf;
+      };
+      buffersRef.current = {
+        s1: Array.from({ length: VARIANTS }, (_, i) => toBuffer(renderHeartSound("s1", ctx.sampleRate, 11 + i))),
+        s2: Array.from({ length: VARIANTS }, (_, i) => toBuffer(renderHeartSound("s2", ctx.sampleRate, 101 + i))),
+      };
+
+      // 7. Faint looping chest ambience that swells slightly with each beat
+      const bed = ctx.createBufferSource();
+      bed.buffer = toBuffer(renderChestBed(ctx.sampleRate));
+      bed.loop = true;
+      const bedGain = ctx.createGain();
+      bedGain.gain.setValueAtTime(0.035, ctx.currentTime);
+      bed.connect(bedGain);
+      bedGain.connect(masterLowpass);
+      bed.start();
+      bedGainRef.current = bedGain;
     }
 
     const ctx = audioCtxRef.current;
@@ -169,107 +215,34 @@ export function HeartProvider({ children }: { children: React.ReactNode }) {
     return ctx;
   }, []);
 
-  // Synthesize individual S1 or S2 pulse at specified AudioContext time
+  // Play one S1 ("lub") or S2 ("dub") at the given AudioContext time
   const schedulePulse = useCallback(
-    (
-      time: number,
-      isDub: boolean,
-      strength = 1.0,
-      amplitudeVariance = 1.0
-    ) => {
+    (time: number, isDub: boolean, strength = 1.0, amplitudeVariance = 1.0) => {
       const ctx = audioCtxRef.current;
       const shaper = waveshaperRef.current;
-      if (!ctx || !shaper) return;
+      const buffers = buffersRef.current;
+      if (!ctx || !shaper || !buffers) return;
 
       const safeTime = Math.max(ctx.currentTime, time);
+      const pool = isDub ? buffers.s2 : buffers.s1;
+      const src = ctx.createBufferSource();
+      src.buffer = pool[Math.floor(Math.random() * pool.length)];
+      // ±2.5% pitch drift between beats, like a real chest
+      src.playbackRate.setValueAtTime(1 + (Math.random() - 0.5) * 0.05, safeTime);
 
-      if (!isDub) {
-        // S1 (lub): 100 to 140 ms, 75 Hz -> 38 Hz, attack 6 ms
-        const duration = 0.12;
-        const amp = 0.88 * strength * amplitudeVariance;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(Math.min(1.2, 0.95 * strength * amplitudeVariance), safeTime);
+      src.connect(gain);
+      gain.connect(shaper);
+      src.start(safeTime);
 
-        // Sine component
-        const osc = ctx.createOscillator();
-        const oscGain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(75, safeTime);
-        osc.frequency.exponentialRampToValueAtTime(38, safeTime + duration);
-
-        oscGain.gain.setValueAtTime(0.0001, safeTime);
-        oscGain.gain.linearRampToValueAtTime(amp, safeTime + 0.006);
-        oscGain.gain.exponentialRampToValueAtTime(0.0001, safeTime + duration);
-
-        osc.connect(oscGain);
-        oscGain.connect(shaper);
-        osc.start(safeTime);
-        osc.stop(safeTime + duration);
-
-        // Lowpassed noise burst (cutoff 120 Hz)
-        const noiseBuffer = ctx.createBuffer(1, Math.round(ctx.sampleRate * 0.06), ctx.sampleRate);
-        const noiseData = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < noiseData.length; i++) {
-          noiseData[i] = Math.random() * 2 - 1;
-        }
-        const noiseSrc = ctx.createBufferSource();
-        noiseSrc.buffer = noiseBuffer;
-
-        const noiseFilter = ctx.createBiquadFilter();
-        noiseFilter.type = "lowpass";
-        noiseFilter.frequency.setValueAtTime(120, safeTime);
-        noiseFilter.Q.setValueAtTime(1.5, safeTime);
-
-        const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.0001, safeTime);
-        noiseGain.gain.linearRampToValueAtTime(amp * 0.32, safeTime + 0.004);
-        noiseGain.gain.exponentialRampToValueAtTime(0.0001, safeTime + 0.055);
-
-        noiseSrc.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(shaper);
-        noiseSrc.start(safeTime);
-        noiseSrc.stop(safeTime + 0.06);
-      } else {
-        // S2 (dub): 70 to 100 ms, 95 Hz -> 55 Hz, ~65% amp
-        const duration = 0.085;
-        const amp = 0.88 * 0.65 * strength * amplitudeVariance;
-
-        const osc = ctx.createOscillator();
-        const oscGain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(95, safeTime);
-        osc.frequency.exponentialRampToValueAtTime(55, safeTime + duration);
-
-        oscGain.gain.setValueAtTime(0.0001, safeTime);
-        oscGain.gain.linearRampToValueAtTime(amp, safeTime + 0.004);
-        oscGain.gain.exponentialRampToValueAtTime(0.0001, safeTime + duration);
-
-        osc.connect(oscGain);
-        oscGain.connect(shaper);
-        osc.start(safeTime);
-        osc.stop(safeTime + duration);
-
-        // Subtle noise transient
-        const noiseBuffer = ctx.createBuffer(1, Math.round(ctx.sampleRate * 0.04), ctx.sampleRate);
-        const noiseData = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < noiseData.length; i++) noiseData[i] = Math.random() * 2 - 1;
-
-        const noiseSrc = ctx.createBufferSource();
-        noiseSrc.buffer = noiseBuffer;
-
-        const noiseFilter = ctx.createBiquadFilter();
-        noiseFilter.type = "lowpass";
-        noiseFilter.frequency.setValueAtTime(140, safeTime);
-
-        const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.0001, safeTime);
-        noiseGain.gain.linearRampToValueAtTime(amp * 0.22, safeTime + 0.003);
-        noiseGain.gain.exponentialRampToValueAtTime(0.0001, safeTime + 0.038);
-
-        noiseSrc.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(shaper);
-        noiseSrc.start(safeTime);
-        noiseSrc.stop(safeTime + 0.04);
+      // Systolic swell of the chest ambience after each lub
+      const bedGain = bedGainRef.current;
+      if (bedGain && !isDub) {
+        bedGain.gain.cancelScheduledValues(safeTime);
+        bedGain.gain.setValueAtTime(0.035, safeTime);
+        bedGain.gain.linearRampToValueAtTime(0.07, safeTime + 0.08);
+        bedGain.gain.exponentialRampToValueAtTime(0.035, safeTime + 0.5);
       }
     },
     []
@@ -413,6 +386,25 @@ export function HeartProvider({ children }: { children: React.ReactNode }) {
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
+
+  // Start sound on the first user gesture (browsers block audio until then)
+  useEffect(() => {
+    if (!startOnFirstInteraction || readSoundPreference() === false) return;
+
+    const events = ["pointerdown", "keydown", "touchend"] as const;
+    const remove = () => events.forEach((ev) => window.removeEventListener(ev, onFirstGesture, true));
+    function onFirstGesture(e: Event) {
+      remove();
+      // Let the sound toggle itself handle clicks on it
+      if (e.target instanceof Element && e.target.closest("[data-sound-toggle]")) return;
+      if (soundEnabledRef.current) return;
+      soundEnabledRef.current = true;
+      setSoundEnabledState(true);
+      getOrCreateAudioGraph();
+    }
+    events.forEach((ev) => window.addEventListener(ev, onFirstGesture, { capture: true, passive: true }));
+    return remove;
+  }, [startOnFirstInteraction, getOrCreateAudioGraph]);
 
   // User click toggle handler (Autoplay policy compliant)
   const toggleSound = useCallback(() => {

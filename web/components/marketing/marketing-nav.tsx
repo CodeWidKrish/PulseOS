@@ -121,6 +121,7 @@ export function MarketingNav({ onOpenCommandPalette }: MarketingNavProps) {
             <button
               type="button"
               onClick={toggleSound}
+              data-sound-toggle
               className={`p-2 rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2] ${
                 soundEnabled
                   ? "bg-[#FF4D5E]/15 border-[#FF4D5E]/40 text-[#FF4D5E] shadow-[0_0_10px_rgba(255,77,94,0.25)]"
