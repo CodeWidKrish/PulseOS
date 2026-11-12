@@ -42,7 +42,7 @@ function downloadIcs(appt: Appointment) {
   a.href = url;
   a.download = "pulseos-visit.ics";
   a.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export default function AppointmentsPage() {

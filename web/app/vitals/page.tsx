@@ -262,7 +262,7 @@ export default function VitalsPage() {
                   step="any"
                   min="0"
                   required
-                  autoFocus
+                  data-autofocus
                   value={value1}
                   onChange={(e) => setValue1(e.target.value)}
                   placeholder={selectedType === "bp" ? "120" : selectedType === "heart_rate" ? "72" : selectedType === "glucose" ? "95" : "70"}
