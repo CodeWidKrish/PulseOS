@@ -2,20 +2,39 @@
 
 import React, { useEffect, useState } from "react";
 import { AppShell } from "@/components/app/app-shell";
-import { SpotlightCard } from "@/components/ui/spotlight-card";
-import { Button } from "@/components/ui/button";
+import { TrendChart } from "@/components/app/trend-chart";
+import { Chip } from "@/components/ui/chip";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Icon, type IconName } from "@/components/ui/icon";
+import { Modal } from "@/components/ui/modal";
+import { CountUp, Stagger, StaggerItem } from "@/components/ui/motion";
+import { PageHeader } from "@/components/ui/page-header";
+import { Segmented } from "@/components/ui/segmented";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { api, type Vital, type VitalType } from "@/lib/api";
-import { VITAL_META, formatVitalValue, isInRange, relativeTime, sparklinePath } from "@/lib/vitals";
+import { formatDateTime } from "@/lib/format";
+import { VITAL_META, isInRange } from "@/lib/vitals";
 
 type Range = "7d" | "30d";
 
-/** Parses "72" or "120/80" into value_1/value_2. Returns null when the input is invalid. */
-function parseReading(type: VitalType, raw: string): { value_1: number; value_2: number | null } | null {
-  const parts = raw.split("/").map((p) => Number(p.trim()));
-  if (parts.some((n) => !Number.isFinite(n) || n <= 0)) return null;
-  if (type === "bp") return parts.length === 2 ? { value_1: parts[0], value_2: parts[1] } : null;
-  return parts.length === 1 ? { value_1: parts[0], value_2: null } : null;
+const VITAL_ICON: Record<VitalType, IconName> = {
+  heart_rate: "heartPulse",
+  bp: "gauge",
+  glucose: "droplet",
+  weight: "weight",
+};
+
+const SHORT_NAME: Record<VitalType, string> = {
+  heart_rate: "Heart rate",
+  bp: "Blood pressure",
+  glucose: "Glucose",
+  weight: "Weight",
+};
+
+function percentChange(series: Vital[]): number | null {
+  if (series.length < 2 || series[0].value_1 === 0) return null;
+  return ((series[series.length - 1].value_1 - series[0].value_1) / series[0].value_1) * 100;
 }
 
 export default function VitalsPage() {
@@ -25,7 +44,8 @@ export default function VitalsPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<VitalType>("heart_rate");
-  const [logValue, setLogValue] = useState("");
+  const [value1, setValue1] = useState("");
+  const [value2, setValue2] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -47,19 +67,27 @@ export default function VitalsPage() {
   }, [range, reloadKey]);
 
   const readings = vitals[range];
+  const meta = VITAL_META.find((m) => m.type === selectedType) ?? VITAL_META[0];
+
+  const openLog = (type?: VitalType) => {
+    if (type) setSelectedType(type);
+    setValue1("");
+    setValue2("");
+    setModalOpen(true);
+  };
 
   const handleLogVital = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = parseReading(selectedType, logValue);
-    if (!parsed) {
-      toast.error(selectedType === "bp" ? "Enter blood pressure as systolic/diastolic, e.g. 120/80." : "Enter a single positive number.");
+    const v1 = Number(value1);
+    const v2 = selectedType === "bp" ? Number(value2) : null;
+    if (!Number.isFinite(v1) || v1 <= 0 || (selectedType === "bp" && (!Number.isFinite(v2) || (v2 ?? 0) <= 0))) {
+      toast.error(selectedType === "bp" ? "Enter both systolic and diastolic values." : "Enter a positive number.");
       return;
     }
     setIsSaving(true);
     try {
-      await api.vitals.create({ type: selectedType, ...parsed });
-      toast.success("Reading saved.");
-      setLogValue("");
+      await api.vitals.create({ type: selectedType, value_1: v1, value_2: v2 });
+      toast.success(`${SHORT_NAME[selectedType]} saved.`);
       setModalOpen(false);
       setVitals({ "7d": undefined, "30d": undefined });
       setReloadKey((k) => k + 1);
@@ -71,222 +99,209 @@ export default function VitalsPage() {
   };
 
   return (
-    <AppShell title="Vitals Tracker">
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/8">
-          <div>
-            <span className="text-xs font-mono text-[#5EE1D2] uppercase tracking-wider">
-              Biometric Logging & Trends
-            </span>
-            <h1 className="text-3xl font-semibold tracking-tight text-[#F2F4F7] mt-1">Vitals Tracker</h1>
-            <p className="text-sm text-[#8B93A1] mt-1">
-              Track heart rate, blood pressure, blood glucose, and body weight over time.
-            </p>
-          </div>
+    <AppShell>
+      <PageHeader
+        eyebrow="Vitals"
+        title="Your trends, at a glance"
+        description="Log heart rate, blood pressure, glucose and weight. The shaded band on each chart is the typical adult range."
+        controls={
+          <Segmented
+            label="Time range"
+            value={range}
+            onChange={setRange}
+            options={[
+              { value: "7d", label: "7 days" },
+              { value: "30d", label: "30 days" },
+            ]}
+          />
+        }
+        action={
+          <button type="button" onClick={() => openLog()} className="btn-primary">
+            <Icon name="plus" size={16} /> Log a reading
+          </button>
+        }
+      />
 
-          <div className="flex items-center gap-3">
-            {/* 7d / 30d Segmented Toggle */}
-            <div className="flex p-1 bg-[#12161D] rounded-full border border-white/10 text-xs font-medium" role="group" aria-label="Time range">
-              {(["7d", "30d"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  aria-pressed={range === r}
-                  onClick={() => setRange(r)}
-                  className={`px-3 py-1.5 rounded-full transition-all ${
-                    range === r ? "bg-[#5EE1D2] text-[#07090D] font-bold" : "text-[#8B93A1] hover:text-[#F2F4F7]"
-                  }`}
-                >
-                  {r === "7d" ? "7 Days" : "30 Days"}
-                </button>
-              ))}
-            </div>
-
-            <Button
-              onClick={() => setModalOpen(true)}
-              size="md"
-              variant="primary"
-              className="bg-[#FF4D5E] text-white shadow-lg shadow-[#FF4D5E]/20"
-            >
-              + Log Vital Reading
-            </Button>
-          </div>
-        </div>
-
-        {loadError && (
-          <div className="p-6 rounded-[28px] bg-[#FF4D5E]/10 border border-[#FF4D5E]/30 text-center space-y-3" role="alert">
-            <p className="text-sm text-[#F2F4F7]">{loadError}</p>
-            <Button onClick={() => setReloadKey((k) => k + 1)} size="sm" variant="primary">
+      {loadError ? (
+        <EmptyState
+          tone="error"
+          icon="alert"
+          title="We couldn’t load your vitals"
+          description={loadError}
+          action={
+            <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="btn-secondary">
               Try again
-            </Button>
-          </div>
-        )}
-
-        {/* 4 Vitals Metric Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {VITAL_META.map((meta) => {
-            const series = (readings ?? []).filter((v) => v.type === meta.type);
+            </button>
+          }
+        />
+      ) : (
+        <Stagger key={range} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {VITAL_META.map((m) => {
+            const series = (readings ?? []).filter((v) => v.type === m.type);
             const latest = series.at(-1);
-            const avg1 = series.length ? series.reduce((s, v) => s + v.value_1, 0) / series.length : null;
+            const avg = series.length ? series.reduce((s, v) => s + v.value_1, 0) / series.length : null;
             const avg2 =
-              meta.type === "bp" && series.length
-                ? series.reduce((s, v) => s + (v.value_2 ?? 0), 0) / series.length
-                : null;
-            const ok = latest ? isInRange(meta, latest) : true;
-            const tone = ok
-              ? "text-[#5EE1D2] bg-[#5EE1D2]/10 border-[#5EE1D2]/30"
-              : "text-[#FFB86B] bg-[#FFB86B]/10 border-[#FFB86B]/30";
+              m.type === "bp" && series.length ? series.reduce((s, v) => s + (v.value_2 ?? 0), 0) / series.length : null;
+            const ok = latest ? isInRange(m, latest) : true;
+            const change = percentChange(series);
 
             return (
-              <SpotlightCard
-                key={meta.type}
-                className="p-6 sm:p-8 bg-[#12161D]/85 backdrop-blur-md flex flex-col justify-between"
-                spotlightColor="rgba(94, 225, 210, 0.12)"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-[#8B93A1] uppercase tracking-wider">{meta.name}</span>
-                    {latest && meta.range && (
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${tone}`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                        {ok ? "In range" : "Outside range"}
-                      </span>
-                    )}
-                  </div>
-
-                  {readings === undefined ? (
-                    <div className="mt-4 h-28 rounded-xl bg-white/[0.04] animate-pulse" aria-hidden="true" />
-                  ) : latest ? (
-                    <>
-                      <div className="mt-4 flex items-baseline gap-2 flex-wrap">
-                        <span className="text-4xl font-bold font-mono text-[#F2F4F7] tracking-tight tabular-nums">
-                          {formatVitalValue(latest)}
-                        </span>
-                        <span className="text-sm font-mono text-[#8B93A1]">{meta.unit}</span>
-                        {avg1 !== null && (
-                          <span className="text-xs text-[#8B93A1] ml-3">
-                            {range} avg: {Math.round(avg1)}
-                            {avg2 !== null ? ` / ${Math.round(avg2)}` : ""}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="mt-6 h-20 w-full">
-                        <svg
-                          viewBox="0 0 300 50"
-                          className="w-full h-full overflow-visible"
-                          role="img"
-                          aria-label={`${meta.name} trend over ${series.length} readings`}
-                        >
-                          <path
-                            d={sparklinePath(series.map((v) => v.value_1))}
-                            fill="none"
-                            stroke={ok ? "#5EE1D2" : "#FFB86B"}
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="mt-6 text-sm text-[#8B93A1]">No readings in this period yet.</p>
+              <StaggerItem key={m.type} className="tile tile-interactive flex flex-col p-6 sm:p-7">
+                <div className="flex items-start justify-between gap-4">
+                  <p className="flex items-center gap-2 text-sm font-medium text-fg-muted">
+                    <span className={`grid h-8 w-8 place-items-center rounded-full ${ok ? "bg-teal-muted text-teal" : "bg-amber-muted text-amber"}`}>
+                      <Icon name={VITAL_ICON[m.type]} size={16} />
+                    </span>
+                    {SHORT_NAME[m.type]}
+                  </p>
+                  {latest && m.range && (
+                    <Chip variant={ok ? "normal" : "caution"} size="sm">
+                      {ok ? "In range" : "Outside range"}
+                    </Chip>
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-white/6 flex items-center justify-between text-xs text-[#8B93A1]">
-                  <span>{series.length} reading{series.length === 1 ? "" : "s"}</span>
-                  <span className="font-mono">{latest ? `Last logged: ${relativeTime(latest.recorded_at)}` : "—"}</span>
-                </div>
-              </SpotlightCard>
+                {readings === undefined ? (
+                  <>
+                    <Skeleton className="mt-6 h-10 w-40" />
+                    <Skeleton className="mt-6 h-[150px] w-full" />
+                  </>
+                ) : latest ? (
+                  <>
+                    <div className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <p className="text-4xl font-semibold tracking-tight text-fg">
+                        {m.type === "bp" && latest.value_2 !== null ? (
+                          <span className="tabular-nums">
+                            {Math.round(latest.value_1)}/{Math.round(latest.value_2)}
+                          </span>
+                        ) : (
+                          <CountUp value={latest.value_1} decimals={latest.value_1 % 1 ? 1 : 0} />
+                        )}
+                      </p>
+                      <span className="font-mono text-sm text-fg-muted">{m.unit}</span>
+                      {change !== null && Math.abs(change) >= 0.5 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-hover px-2 py-0.5 text-xs text-fg-muted">
+                          <Icon name={change > 0 ? "trendUp" : "trendDown"} size={13} />
+                          {Math.abs(change).toFixed(1)}% this period
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-5 flex-1">
+                      {series.length > 1 ? (
+                        <TrendChart
+                          data={series.map((v) => ({ t: v.recorded_at, v: v.value_1, v2: v.value_2 }))}
+                          band={m.range}
+                          tone={ok ? "teal" : "amber"}
+                          unit={m.unit}
+                          height={150}
+                        />
+                      ) : (
+                        <p className="grid h-[150px] place-items-center text-sm text-fg-muted">Log one more reading to see a trend.</p>
+                      )}
+                    </div>
+                    <div className="mt-4 flex items-center justify-between border-t border-line pt-4 text-xs text-fg-muted">
+                      <span className="font-mono">
+                        Avg {avg !== null ? Math.round(avg) : "—"}
+                        {avg2 !== null ? `/${Math.round(avg2)}` : ""} · {series.length} reading{series.length === 1 ? "" : "s"}
+                      </span>
+                      <span className="font-mono">{formatDateTime(latest.recorded_at)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-1 flex-col items-start justify-center gap-3 py-10">
+                    <p className="text-sm text-fg-muted">No readings in this period yet.</p>
+                    <button type="button" onClick={() => openLog(m.type)} className="btn-ghost -ml-3 text-sm">
+                      <Icon name="plus" size={15} /> Add {SHORT_NAME[m.type].toLowerCase()}
+                    </button>
+                  </div>
+                )}
+              </StaggerItem>
             );
           })}
-        </div>
+        </Stagger>
+      )}
 
-        <p className="text-xs text-[#8B93A1] text-center">
-          Ranges are general reference bands for adults. PulseOS explains information and does not provide medical advice.
-        </p>
+      <p className="mt-10 text-center text-xs text-fg-muted">
+        Ranges are general reference bands for adults. PulseOS explains information and does not provide medical advice.
+      </p>
 
-        {/* Modal Dialog for Logging Vital Reading */}
-        {modalOpen && (
-          <div
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="log-vital-title"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setModalOpen(false);
-            }}
-          >
-            <div className="w-full max-w-md bg-[#12161D] border border-white/10 rounded-[28px] p-6 sm:p-8 space-y-6 animate-scaleUp">
-              <div className="flex items-center justify-between pb-4 border-b border-white/8">
-                <h2 id="log-vital-title" className="text-xl font-semibold text-[#F2F4F7]">
-                  Log Vital Reading
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="p-1 text-[#8B93A1] hover:text-white"
-                  aria-label="Close dialog"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <form onSubmit={handleLogVital} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="vital-type" className="text-xs font-medium text-[#8B93A1] uppercase tracking-wider">
-                    Select Measurement
-                  </label>
-                  <select
-                    id="vital-type"
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value as VitalType)}
-                    className="w-full h-11 px-3.5 rounded-xl bg-[#0B0D12] text-sm text-[#F2F4F7] border border-white/10 outline-none focus:border-[#5EE1D2]"
-                  >
-                    {VITAL_META.map((m) => (
-                      <option key={m.type} value={m.type}>
-                        {m.name} ({m.unit})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="vital-value" className="text-xs font-medium text-[#8B93A1] uppercase tracking-wider">
-                    Measured Value
-                  </label>
-                  <input
-                    id="vital-value"
-                    type="text"
-                    inputMode="decimal"
-                    autoFocus
-                    value={logValue}
-                    onChange={(e) => setLogValue(e.target.value)}
-                    placeholder={selectedType === "bp" ? "e.g. 120/80" : "e.g. 72"}
-                    required
-                    className="w-full h-11 px-3.5 rounded-xl bg-[#0B0D12] text-sm text-[#F2F4F7] border border-white/10 outline-none focus:border-[#5EE1D2]"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/8">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Log a reading" description="Saved to your private timeline.">
+        <form onSubmit={handleLogVital} className="space-y-5">
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-fg-muted">Measurement</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {VITAL_META.map((m) => {
+                const active = m.type === selectedType;
+                return (
                   <button
+                    key={m.type}
                     type="button"
-                    onClick={() => setModalOpen(false)}
-                    className="px-4 py-2 text-xs font-medium text-[#8B93A1] hover:text-white"
+                    aria-pressed={active}
+                    onClick={() => setSelectedType(m.type)}
+                    className={`flex items-center gap-2.5 rounded-control border px-3 py-3 text-left text-sm transition-colors ${
+                      active ? "border-teal bg-teal-muted text-fg" : "border-line text-fg-muted hover:border-line-strong hover:text-fg"
+                    }`}
                   >
-                    Cancel
+                    <Icon name={VITAL_ICON[m.type]} size={17} className={active ? "text-teal" : ""} />
+                    {SHORT_NAME[m.type]}
                   </button>
-                  <Button type="submit" size="sm" variant="primary" isLoading={isSaving}>
-                    Save Reading
-                  </Button>
-                </div>
-              </form>
+                );
+              })}
             </div>
+          </fieldset>
+
+          <div className={`grid gap-3 ${selectedType === "bp" ? "grid-cols-2" : "grid-cols-1"}`}>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-fg-muted">
+                {selectedType === "bp" ? "Systolic" : "Value"}
+              </span>
+              <span className="flex h-12 items-center rounded-control border border-line bg-canvas px-4 focus-within:border-teal focus-within:shadow-[0_0_0_3px_rgba(94,225,210,0.18)]">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  required
+                  autoFocus
+                  value={value1}
+                  onChange={(e) => setValue1(e.target.value)}
+                  placeholder={selectedType === "bp" ? "120" : selectedType === "heart_rate" ? "72" : selectedType === "glucose" ? "95" : "70"}
+                  className="w-full bg-transparent text-lg tabular-nums text-fg outline-none placeholder:text-fg-muted/50"
+                />
+                <span className="font-mono text-xs text-fg-muted">{meta.unit}</span>
+              </span>
+            </label>
+            {selectedType === "bp" && (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-fg-muted">Diastolic</span>
+                <span className="flex h-12 items-center rounded-control border border-line bg-canvas px-4 focus-within:border-teal focus-within:shadow-[0_0_0_3px_rgba(94,225,210,0.18)]">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    min="0"
+                    required
+                    value={value2}
+                    onChange={(e) => setValue2(e.target.value)}
+                    placeholder="80"
+                    className="w-full bg-transparent text-lg tabular-nums text-fg outline-none placeholder:text-fg-muted/50"
+                  />
+                  <span className="font-mono text-xs text-fg-muted">mmHg</span>
+                </span>
+              </label>
+            )}
           </div>
-        )}
-      </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setModalOpen(false)} className="btn-ghost">
+              Cancel
+            </button>
+            <button type="submit" disabled={isSaving} className="btn-primary">
+              {isSaving ? "Saving…" : "Save reading"}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </AppShell>
   );
 }

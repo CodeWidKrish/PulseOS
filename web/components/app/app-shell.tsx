@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useSyncExternalStore } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
 import { useTheme } from "@/lib/theme-context";
 import { toast } from "@/components/ui/toast";
+import { Icon, type IconName } from "@/components/ui/icon";
 import { CommandPalette } from "@/components/marketing/command-palette";
 import { api } from "@/lib/api";
 import { RequireSession, initialsOf, useSessionUser } from "@/lib/session";
@@ -14,43 +16,11 @@ interface AppShellProps {
   title?: string;
 }
 
-const NAV_ITEMS = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    ),
-  },
-  {
-    label: "Lab Reports",
-    href: "/reports",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
-  },
-  {
-    label: "Vitals Tracker",
-    href: "/vitals",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-  },
-  {
-    label: "Appointments",
-    href: "/appointments",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
-  },
+const NAV_ITEMS: { label: string; href: string; icon: IconName }[] = [
+  { label: "Overview", href: "/dashboard", icon: "dashboard" },
+  { label: "Lab reports", href: "/reports", icon: "report" },
+  { label: "Vitals", href: "/vitals", icon: "activity" },
+  { label: "Appointments", href: "/appointments", icon: "calendar" },
 ];
 
 const NARROW_QUERY = "(max-width: 1199px)";
@@ -65,6 +35,8 @@ function getNarrowSnapshot(): boolean {
   return window.matchMedia(NARROW_QUERY).matches;
 }
 
+const isActive = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
 export function AppShell(props: AppShellProps) {
   return (
     <RequireSession>
@@ -75,15 +47,14 @@ export function AppShell(props: AppShellProps) {
 
 function AppShellFrame({ children, title }: AppShellProps) {
   const user = useSessionUser();
-  const role = user.role;
   const pathname = usePathname();
   const router = useRouter();
+  const reduce = useReducedMotion();
   const { theme, toggleTheme } = useTheme();
   // Collapse by default on narrow screens; a manual toggle overrides the default.
   const isNarrow = useSyncExternalStore(subscribeNarrow, getNarrowSnapshot, () => false);
   const [collapsedOverride, setCollapsedOverride] = useState<boolean | null>(null);
-  const sidebarCollapsed = collapsedOverride ?? isNarrow;
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const collapsed = collapsedOverride ?? isNarrow;
   const [commandOpen, setCommandOpen] = useState(false);
 
   // Command palette hotkey (Cmd+K / Ctrl+K)
@@ -100,247 +71,201 @@ function AppShellFrame({ children, title }: AppShellProps) {
 
   const handleLogout = () => {
     api.auth.logout();
-    toast.info("Signed out. Returning to home.");
+    toast.info("Signed out.");
     router.push("/");
   };
 
+  const sectionTitle = title ?? NAV_ITEMS.find((n) => isActive(pathname, n.href))?.label ?? "Overview";
+
   return (
-    <div className="min-h-screen flex bg-[var(--bg-page)] text-[var(--text-page)] overflow-x-hidden max-w-full">
-      {/* Desktop Collapsible Sidebar */}
+    <div className="relative flex min-h-screen bg-canvas text-fg">
+      {/* ── Desktop sidebar ───────────────────────────────────── */}
       <aside
-        className={`hidden md:flex flex-col justify-between border-r border-white/8 bg-[#0B0D12] transition-all duration-300 z-30 sticky top-0 h-screen shrink-0 ${
-          sidebarCollapsed ? "w-20" : "w-64"
+        className={`no-print sticky top-0 z-30 hidden h-screen shrink-0 flex-col justify-between border-r border-line bg-surface/70 backdrop-blur-xl transition-[width] duration-300 md:flex ${
+          collapsed ? "w-[76px]" : "w-[248px]"
         }`}
       >
         <div>
-          {/* Brand & Collapse Header */}
-          <div className="h-16 flex items-center justify-between px-5 border-b border-white/8">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2.5 overflow-hidden"
-              aria-label="PulseOS Dashboard Home"
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D5E] shadow-[0_0_10px_#FF4D5E] shrink-0" />
-              {!sidebarCollapsed && (
-                <span className="font-semibold text-lg tracking-tight text-[#F2F4F7]">
-                  Pulse<span className="text-[#8B93A1]">OS</span>
+          <div className={`flex h-16 items-center ${collapsed ? "justify-center" : "justify-between px-5"}`}>
+            <Link href="/dashboard" className="flex items-center gap-2.5" aria-label="PulseOS overview">
+              <span className="beacon relative h-2.5 w-2.5 rounded-full bg-pulse text-pulse" aria-hidden="true" />
+              {!collapsed && (
+                <span className="text-[15px] font-semibold tracking-tight">
+                  Pulse<span className="text-fg-muted">OS</span>
                 </span>
               )}
             </Link>
-
-            <button
-              type="button"
-              onClick={() => setCollapsedOverride(!sidebarCollapsed)}
-              className="p-1.5 text-[#8B93A1] hover:text-[#F2F4F7] rounded-lg hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                {sidebarCollapsed ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                )}
-              </svg>
-            </button>
+            {!collapsed && (
+              <button
+                type="button"
+                onClick={() => setCollapsedOverride(true)}
+                className="grid h-8 w-8 place-items-center rounded-full text-fg-muted transition-colors hover:bg-hover hover:text-fg"
+                aria-label="Collapse sidebar"
+              >
+                <Icon name="chevronsLeft" size={16} />
+              </button>
+            )}
           </div>
 
-          {/* Navigation Links */}
-          <nav className="p-3 space-y-1.5" aria-label="App Navigation">
+          <nav className="mt-4 space-y-1 px-3" aria-label="App">
             {NAV_ITEMS.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const active = isActive(pathname, item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    isActive
-                      ? "bg-[#5EE1D2]/15 text-[#5EE1D2] font-semibold border border-[#5EE1D2]/30 shadow-sm"
-                      : "text-[#8B93A1] hover:text-[#F2F4F7] hover:bg-white/5"
-                  }`}
-                  title={sidebarCollapsed ? item.label : undefined}
+                  title={collapsed ? item.label : undefined}
+                  aria-current={active ? "page" : undefined}
+                  className={`relative flex h-11 items-center gap-3 rounded-control text-sm font-medium transition-colors ${
+                    collapsed ? "justify-center" : "px-3.5"
+                  } ${active ? "text-fg" : "text-fg-muted hover:text-fg"}`}
                 >
-                  <span className="shrink-0">{item.icon}</span>
-                  {!sidebarCollapsed && <span>{item.label}</span>}
+                  {active && (
+                    <motion.span
+                      layoutId="nav-active"
+                      className="absolute inset-0 rounded-control border border-line-strong bg-hover"
+                      transition={reduce ? { duration: 0 } : { type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                      aria-hidden="true"
+                    >
+                      <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-teal shadow-glow-teal" />
+                    </motion.span>
+                  )}
+                  <span className={`relative ${active ? "text-teal" : ""}`}>
+                    <Icon name={item.icon} size={19} />
+                  </span>
+                  {!collapsed && <span className="relative">{item.label}</span>}
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        {/* User Card & Logout at Bottom */}
-        <div className="p-4 border-t border-white/8 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#5EE1D2]/20 border border-[#5EE1D2]/40 text-[#5EE1D2] font-semibold text-xs flex items-center justify-center shrink-0">
-              {initialsOf(user.full_name)}
-            </div>
-            {!sidebarCollapsed && (
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-[#F2F4F7] truncate">
-                  {user.full_name}
-                </p>
-                <p className="text-[11px] text-[#8B93A1] capitalize">{role}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between gap-2 pt-2">
-            <Link
-              href="/"
-              className={`text-xs text-[#8B93A1] hover:text-[#F2F4F7] transition-colors ${
-                sidebarCollapsed ? "hidden" : "block"
-              }`}
-            >
-              ← Marketing
-            </Link>
-
+        <div className="space-y-2 border-t border-line p-3">
+          {collapsed && (
             <button
               type="button"
-              onClick={handleLogout}
-              className="text-xs text-[#FF4D5E] hover:underline focus-visible:outline-none"
-              title="Sign out"
+              onClick={() => setCollapsedOverride(false)}
+              className="mx-auto grid h-9 w-9 place-items-center rounded-full text-fg-muted hover:bg-hover hover:text-fg"
+              aria-label="Expand sidebar"
             >
-              Sign out
+              <Icon name="chevronRight" size={16} />
             </button>
+          )}
+          <div className={`flex items-center gap-3 rounded-control p-2 ${collapsed ? "justify-center" : ""}`}>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-teal/30 bg-teal-muted text-xs font-semibold text-teal">
+              {initialsOf(user.full_name)}
+            </span>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-fg">{user.full_name}</p>
+                <p className="text-xs capitalize text-fg-muted">{user.role}</p>
+              </div>
+            )}
+            {!collapsed && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="grid h-9 w-9 place-items-center rounded-full text-fg-muted transition-colors hover:bg-pulse-muted hover:text-pulse"
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <Icon name="logout" size={17} />
+              </button>
+            )}
           </div>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header Bar */}
-        <header className="h-16 px-4 sm:px-8 border-b border-white/8 bg-[#07090D]/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between gap-4">
-          {/* Left: Mobile hamburger + Breadcrumbs */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              className="md:hidden p-2 text-[#8B93A1] hover:text-[#F2F4F7] rounded-lg"
-              aria-label="Open mobile menu"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+      {/* ── Main column ───────────────────────────────────────── */}
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        <div className="app-aurora no-print" aria-hidden="true" />
 
-            {/* Breadcrumbs */}
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-[#8B93A1]">
-              <Link href="/dashboard" className="hover:text-[#F2F4F7] transition-colors">
-                PulseOS
-              </Link>
-              <span>/</span>
-              <span className="text-[#F2F4F7] font-medium capitalize">
-                {title || pathname.replace("/", "").replace("-", " ") || "Dashboard"}
-              </span>
-            </div>
+        <header className="glass-nav no-print sticky top-0 z-20 flex h-16 items-center justify-between gap-4 px-4 sm:px-8">
+          <div className="flex min-w-0 items-center gap-2 text-sm">
+            <Link href="/dashboard" className="flex items-center gap-2 md:hidden" aria-label="PulseOS overview">
+              <span className="beacon relative h-2.5 w-2.5 rounded-full bg-pulse text-pulse" aria-hidden="true" />
+            </Link>
+            <span className="hidden text-fg-muted sm:inline">PulseOS</span>
+            <span className="hidden text-fg-muted/50 sm:inline" aria-hidden="true">
+              /
+            </span>
+            <span className="truncate font-medium text-fg">{sectionTitle}</span>
           </div>
 
-          {/* Right Header Actions */}
-          <div className="flex items-center gap-3">
-            {/* Role Badge */}
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#5EE1D2]/10 border border-[#5EE1D2]/30 text-[#5EE1D2] capitalize">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5EE1D2]" />
-              {role}
-            </span>
-
-            {/* Command Palette Trigger */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setCommandOpen(true)}
-              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 text-xs text-[#8B93A1] bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
+              className="hidden h-9 items-center gap-2 rounded-full border border-line bg-hover px-3.5 text-[13px] text-fg-muted transition-colors hover:border-line-strong hover:text-fg sm:inline-flex"
               aria-label="Open command palette"
             >
-              <span>Search or jump to...</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] bg-black/40 rounded border border-white/10 text-white font-mono">
-                Ctrl K
-              </kbd>
+              <Icon name="search" size={15} />
+              <span>Jump to…</span>
+              <kbd className="rounded border border-line px-1.5 py-0.5 font-mono text-[11px]">Ctrl K</kbd>
             </button>
-
-            {/* Dark / Light Toggle */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 rounded-full border border-white/10 bg-white/[0.04] text-[#8B93A1] hover:text-[#F2F4F7] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
-              aria-label="Toggle theme"
+              className="grid h-9 w-9 place-items-center rounded-full border border-line bg-hover text-fg-muted transition-colors hover:text-fg"
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
             >
-              {theme === "dark" ? (
-                <svg className="w-4 h-4 text-[#FFB86B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 text-[#5EE1D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              )}
+              <Icon name={theme === "dark" ? "sun" : "moon"} size={16} />
             </button>
-
-            {/* Quick Upload Action */}
-            <Link
-              href="/reports"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full bg-[#5EE1D2] text-[#07090D] hover:bg-[#5EE1D2]/90 transition-all hover:scale-[1.02] shadow-sm"
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="grid h-9 w-9 place-items-center rounded-full border border-line bg-hover text-fg-muted transition-colors hover:text-pulse md:hidden"
+              aria-label="Sign out"
             >
-              <span>+</span>
-              <span className="hidden sm:inline">Upload Report</span>
-            </Link>
+              <Icon name="logout" size={16} />
+            </button>
           </div>
         </header>
 
-        {/* Page Content Viewport */}
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
+        <motion.main
+          key={pathname}
+          initial={reduce ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="relative mx-auto w-full max-w-[1280px] flex-1 px-4 pb-28 pt-8 sm:px-8 md:pb-16 md:pt-10"
+        >
           {children}
-        </main>
+        </motion.main>
       </div>
 
-      {/* Mobile Drawer */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex md:hidden"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-72 bg-[#0B0D12] h-full p-6 flex flex-col justify-between border-r border-white/10 animate-scaleUp">
-            <div>
-              <div className="flex items-center justify-between pb-6 border-b border-white/10">
-                <span className="font-semibold text-lg text-white">PulseOS App</span>
-                <button
-                  type="button"
-                  onClick={() => setMobileOpen(false)}
-                  className="p-1 text-[#8B93A1] hover:text-white"
-                  aria-label="Close menu"
-                >
-                  ✕
-                </button>
-              </div>
+      {/* ── Mobile bottom tab bar ─────────────────────────────── */}
+      <nav
+        className="no-print fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-[22px] border border-line bg-surface/85 p-1.5 shadow-elevation-high backdrop-blur-xl md:hidden"
+        aria-label="App"
+      >
+        {NAV_ITEMS.map((item) => {
+          const active = isActive(pathname, item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`relative flex min-h-[48px] flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl text-[11px] font-medium ${
+                active ? "text-teal" : "text-fg-muted"
+              }`}
+            >
+              {active && (
+                <motion.span
+                  layoutId="tab-active"
+                  className="absolute inset-0 rounded-2xl bg-hover"
+                  transition={reduce ? { duration: 0 } : { type: "tween", duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  aria-hidden="true"
+                />
+              )}
+              <span className="relative">
+                <Icon name={item.icon} size={20} />
+              </span>
+              <span className="relative">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
-              <nav className="mt-6 space-y-2">
-                {NAV_ITEMS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#F2F4F7] hover:bg-white/5"
-                  >
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
-              </nav>
-            </div>
-
-            <div className="pt-6 border-t border-white/10">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full py-2.5 text-center text-xs font-semibold text-[#FF4D5E] border border-[#FF4D5E]/30 rounded-full hover:bg-[#FF4D5E]/10"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-          <div className="flex-1" onClick={() => setMobileOpen(false)} />
-        </div>
-      )}
-
-      {/* Command Palette */}
       <CommandPalette isOpen={commandOpen} onClose={() => setCommandOpen(false)} />
     </div>
   );

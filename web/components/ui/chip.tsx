@@ -9,27 +9,16 @@ export interface ChipProps extends React.HTMLAttributes<HTMLSpanElement> {
 export const Chip = forwardRef<HTMLSpanElement, ChipProps>(
   ({ children, variant = "normal", size = "md", dot = true, className = "", ...props }, ref) => {
     const variantStyles = {
-      normal: {
-        container: "bg-[rgba(94,225,210,0.10)] text-[#5EE1D2] border-[#5EE1D2]/25",
-        dot: "bg-[#5EE1D2]",
-      },
-      alert: {
-        container: "bg-[rgba(255,77,94,0.10)] text-[#FF4D5E] border-[#FF4D5E]/25",
-        dot: "bg-[#FF4D5E] shadow-[0_0_8px_rgba(255,77,94,0.5)]",
-      },
-      caution: {
-        container: "bg-[rgba(255,184,107,0.10)] text-[#FFB86B] border-[#FFB86B]/25",
-        dot: "bg-[#FFB86B]",
-      },
-      neutral: {
-        container: "bg-white/5 text-[#8B93A1] border-white/10",
-        dot: "bg-[#8B93A1]",
-      },
+      normal: { container: "bg-teal-muted text-teal border-teal/25", dot: "bg-teal" },
+      alert: { container: "bg-pulse-muted text-pulse border-pulse/25", dot: "bg-pulse" },
+      caution: { container: "bg-amber-muted text-amber border-amber/25", dot: "bg-amber" },
+      neutral: { container: "bg-hover text-fg-muted border-line", dot: "bg-fg-muted" },
     }[variant];
 
+    // DESIGN.md §5.6: 12px semibold label; never smaller than 11px (anti-pattern 8)
     const sizeStyles = {
-      sm: "text-[10px] py-0.5 px-2.5 tracking-wider gap-1.5",
-      md: "text-xs py-1 px-3 tracking-wider gap-2",
+      sm: "text-[11px] py-0.5 px-2.5 tracking-wide gap-1.5",
+      md: "text-xs py-1 px-3 tracking-wide gap-2",
     }[size];
 
     return (
