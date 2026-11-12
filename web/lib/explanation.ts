@@ -45,5 +45,6 @@ export function parseExplanation(raw: string): ParsedExplanation {
   }
   flush();
 
-  return { paragraphs, questions, urgent: /urgent/i.test(text) };
+  // Only the explainer's explicit notice (ai_service.py rule 6) — never a stray "not urgent"
+  return { paragraphs, questions, urgent: /urgent\s+care\s+notice/i.test(text) };
 }
