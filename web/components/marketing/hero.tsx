@@ -73,7 +73,7 @@ function MagneticButton({
 }
 
 export function Hero() {
-  const { bpm } = useHeart();
+  const { bpm, soundEnabled } = useHeart();
   const isDebugLayers = React.useSyncExternalStore(
     subscribeNoop,
     getIsDebugLayers,
@@ -189,6 +189,12 @@ export function Hero() {
           </span>
           <span>·</span>
           <span>{MARKETING_CONTENT.hero.cursorHint} · Press & hold to charge</span>
+          {!soundEnabled && (
+            <>
+              <span>·</span>
+              <span className="text-[#F2F4F7]/80">Tap anywhere to hear the heartbeat</span>
+            </>
+          )}
         </span>
         <LiveEcgStrip />
       </div>

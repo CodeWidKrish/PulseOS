@@ -440,7 +440,7 @@ PulseOS speaks with the calm, grounded reassurance of a world-class clinician. *
 10. **Capitalization Inconsistency**: Mixing Title Case and Sentence Case across buttons, headers, and tabs.
 11. **Abrupt Motion Cuts**: Animating height or width directly with CSS transitions, resulting in janky layout recalculations.
 12. **Decorative Medical Fluff**: Adding heartbeat EKG squiggles or medical caduceus symbols purely for decorative fill.
-13. **Auto-Playing Audio**: Playing chimes, heartbeat sounds, or audio alerts without explicit user interaction.
+13. **Uninvited Audio**: Playing chimes or alerts without user interaction. The one exception is the marketing hero heartbeat (owner decision, Nov 2026): it may start on the visitor's first click, tap or key press, must always have a visible mute toggle, and must stay muted once the visitor turns it off.
 14. **Over-saturated Backgrounds**: Using pure `#000000` pitch black everywhere instead of the nuanced, luminous Obsidian Ink (`#07090D`) and Graphite (`#12161D`).
 15. **Alarmist Framing**: Employing flashing red banners or exclamation marks that induce unnecessary anxiety in patients.
 

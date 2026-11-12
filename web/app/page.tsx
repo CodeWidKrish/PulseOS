@@ -33,7 +33,7 @@ const BentoDashboard = dynamic(
 
 export default function MarketingPage() {
   return (
-    <HeartProvider>
+    <HeartProvider startOnFirstInteraction>
       <div className="relative min-h-screen text-[#F2F4F7] overflow-x-hidden selection:bg-[#FF4D5E]/30 selection:text-white">
         {/* Layer 0: Fixed cross-fading background layer between #07090D and #F4F5F7 */}
         <div
