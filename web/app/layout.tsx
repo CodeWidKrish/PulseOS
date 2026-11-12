@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/lib/theme-context";
+import { THEME_INIT_SCRIPT, ThemeProvider } from "@/lib/theme-context";
 import { ToastContainer } from "@/components/ui/toast";
 
 const geistSans = Geist({
@@ -79,6 +79,8 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* Apply the saved theme before first paint (no wrong-theme flash) */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <link
           rel="preload"
           as="image"

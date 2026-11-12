@@ -32,7 +32,7 @@
   --shadow-elevation-high: 0 24px 48px -12px rgba(0, 0, 0, 0.70);
   --shadow-elevation-low: 0 8px 24px -6px rgba(0, 0, 0, 0.40);
 
-  /* ── Semantic app tokens (re-defined under html.light) ── */
+  /* ── Semantic app tokens (re-defined under html.light:not(.marketing)) ── */
   --color-canvas: #07090D;
   --color-surface: #12161D;
   --color-surface-2: #181D26;
@@ -72,7 +72,7 @@
   color-scheme: dark;
 }
 
-html.light {
+html.light:not(.marketing) {
   --color-ink: #F8F9FA;
   --color-graphite: #FFFFFF;
   --color-mist: #EDF0F5;
@@ -108,50 +108,50 @@ html.light {
 }
 
 /* Light Mode Overrides for WCAG AA Contrast */
-html.light .text-\[\#F2F4F7\] {
+html.light:not(.marketing) .text-\[\#F2F4F7\] {
   color: #0B0F15 !important;
 }
-html.light .text-\[\#8B93A1\] {
+html.light:not(.marketing) .text-\[\#8B93A1\] {
   color: #4B5563 !important;
 }
-html.light .text-\[\#C9CFD9\] {
+html.light:not(.marketing) .text-\[\#C9CFD9\] {
   color: #1F2937 !important;
 }
-html.light .text-\[\#5EE1D2\] {
+html.light:not(.marketing) .text-\[\#5EE1D2\] {
   color: #0F766E !important;
 }
-html.light .text-\[\#FFB86B\] {
+html.light:not(.marketing) .text-\[\#FFB86B\] {
   color: #B45309 !important;
 }
-html.light .bg-\[\#12161D\],
-html.light .bg-\[\#161B23\] {
+html.light:not(.marketing) .bg-\[\#12161D\],
+html.light:not(.marketing) .bg-\[\#161B23\] {
   background-color: #FFFFFF !important;
 }
-html.light .bg-\[\#12161D\]\/90,
-html.light .bg-\[\#12161D\]\/80,
-html.light .bg-\[\#12161D\]\/60 {
+html.light:not(.marketing) .bg-\[\#12161D\]\/90,
+html.light:not(.marketing) .bg-\[\#12161D\]\/80,
+html.light:not(.marketing) .bg-\[\#12161D\]\/60 {
   background-color: rgba(255, 255, 255, 0.95) !important;
 }
-html.light .bg-\[\#07090D\],
-html.light .bg-\[\#0B0D12\],
-html.light .bg-\[\#0B0F15\],
-html.light .bg-\[\#0B0F15\]\/60 {
+html.light:not(.marketing) .bg-\[\#07090D\],
+html.light:not(.marketing) .bg-\[\#0B0D12\],
+html.light:not(.marketing) .bg-\[\#0B0F15\],
+html.light:not(.marketing) .bg-\[\#0B0F15\]\/60 {
   background-color: #F8F9FA !important;
 }
-html.light .border-white\/8,
-html.light .border-white\/6,
-html.light .border-white\/5,
-html.light .border-white\/10 {
+html.light:not(.marketing) .border-white\/8,
+html.light:not(.marketing) .border-white\/6,
+html.light:not(.marketing) .border-white\/5,
+html.light:not(.marketing) .border-white\/10 {
   border-color: rgba(0, 0, 0, 0.12) !important;
 }
-html.light .bg-white\/\[0\.02\],
-html.light .bg-white\/\[0\.03\],
-html.light .bg-white\/\[0\.04\] {
+html.light:not(.marketing) .bg-white\/\[0\.02\],
+html.light:not(.marketing) .bg-white\/\[0\.03\],
+html.light:not(.marketing) .bg-white\/\[0\.04\] {
   background-color: rgba(0, 0, 0, 0.03) !important;
 }
-html.light .bg-black\/40,
-html.light .bg-black\/30,
-html.light .bg-black\/20 {
+html.light:not(.marketing) .bg-black\/40,
+html.light:not(.marketing) .bg-black\/30,
+html.light:not(.marketing) .bg-black\/20 {
   background-color: rgba(0, 0, 0, 0.04) !important;
 }
 
@@ -192,12 +192,42 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Theme Cross-Fade Transition */
+/* ── Theme switch ──────────────────────────────────────────────
+   Primary: View Transitions API — the new theme expands as a soft-edged circle
+   from the toggle (--theme-x/y set in lib/theme-context.tsx). The whole page is
+   snapshotted, so charts, glows and gradients change together, never piecemeal. */
+html.theme-vt::view-transition-old(root),
+html.theme-vt::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.theme-vt::view-transition-old(root) {
+  z-index: 1;
+}
+html.theme-vt::view-transition-new(root) {
+  z-index: 2;
+  animation: themeReveal 0.7s var(--ease-out-expo) both;
+}
+@keyframes themeReveal {
+  from {
+    clip-path: circle(0px at var(--theme-x) var(--theme-y));
+    filter: brightness(1.08);
+  }
+  to {
+    clip-path: circle(var(--theme-r) at var(--theme-x) var(--theme-y));
+    filter: brightness(1);
+  }
+}
+
+/* Fallback (no View Transitions): slow, eased cross-fade of every colour property */
 html.theme-transition,
 html.theme-transition *,
 html.theme-transition *::before,
 html.theme-transition *::after {
-  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease !important;
+  transition-property: background-color, color, border-color, fill, stroke, box-shadow, outline-color, text-decoration-color !important;
+  transition-duration: 0.55s !important;
+  transition-timing-function: var(--ease-out-soft) !important;
+  transition-delay: 0s !important;
 }
 
 /* Custom Sleek Scrollbar */
@@ -215,7 +245,7 @@ html.theme-transition *::after {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(94, 225, 210, 0.45);
 }
-html.light ::-webkit-scrollbar-thumb {
+html.light:not(.marketing) ::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.22);
 }
 
@@ -224,7 +254,7 @@ html.light ::-webkit-scrollbar-thumb {
   background-color: rgba(94, 225, 210, 0.25);
   color: #F2F4F7;
 }
-html.light ::selection {
+html.light:not(.marketing) ::selection {
   background-color: rgba(13, 148, 136, 0.25);
   color: #0B0F15;
 }
@@ -449,7 +479,7 @@ html.light ::selection {
   border-color: var(--color-line-strong);
   box-shadow: var(--shadow-elevation-low);
 }
-html.light .tile {
+html.light:not(.marketing) .tile {
   box-shadow: 0 1px 2px rgba(11, 15, 21, 0.04), 0 8px 24px -12px rgba(11, 15, 21, 0.10);
 }
 
@@ -465,7 +495,7 @@ html.light .tile {
   filter: blur(20px);
   animation: auroraDrift 24s ease-in-out infinite alternate;
 }
-html.light .app-aurora {
+html.light:not(.marketing) .app-aurora {
   opacity: 0.6;
 }
 
@@ -488,7 +518,7 @@ html.light .app-aurora {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
   animation: shimmer 1.6s var(--ease-out-soft) infinite;
 }
-html.light .shimmer::after {
+html.light:not(.marketing) .shimmer::after {
   background: linear-gradient(90deg, transparent, rgba(11, 15, 21, 0.05), transparent);
 }
 @keyframes shimmer {

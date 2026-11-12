@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { HeartProvider } from "@/lib/heart-context";
 import { MarketingClientShell } from "@/components/marketing/client-shell";
@@ -32,6 +32,14 @@ const BentoDashboard = dynamic(
 );
 
 export default function MarketingPage() {
+  // The homepage keeps its designed cinematic look in either theme (see globals.css
+  // `html.light:not(.marketing)`); the visitor's theme still applies inside the app.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("marketing");
+    return () => root.classList.remove("marketing");
+  }, []);
+
   return (
     <HeartProvider startOnFirstInteraction>
       <div className="relative min-h-screen text-[#F2F4F7] overflow-x-hidden selection:bg-[#FF4D5E]/30 selection:text-white">
