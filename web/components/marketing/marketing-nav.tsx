@@ -5,7 +5,6 @@ import Link from "next/link";
 import { MARKETING_CONTENT } from "@/lib/content";
 import { useLenis } from "@/lib/use-lenis";
 import { useHeart } from "@/lib/heart-context";
-import { useTheme } from "@/lib/theme-context";
 
 interface MarketingNavProps {
   onOpenCommandPalette: () => void;
@@ -27,7 +26,6 @@ export function MarketingNav({ onOpenCommandPalette }: MarketingNavProps) {
   const isMac = useSyncExternalStore(subscribeNoop, getIsMac, () => false);
   const { scrollTo } = useLenis();
   const { soundEnabled, toggleSound, volume, setVolume } = useHeart();
-  const { theme, toggleTheme } = useTheme();
 
   // Scroll Progress Hairline & Active Section Tracking
   useEffect(() => {
@@ -159,24 +157,6 @@ export function MarketingNav({ onOpenCommandPalette }: MarketingNavProps) {
               Best with headphones or speakers
             </div>
           </div>
-
-          {/* Dark / Light Theme Toggle with Smooth Cross-Fade */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-            className="p-2 rounded-full border border-white/15 bg-white/[0.04] text-[#8B93A1] hover:text-[#F2F4F7] transition-all hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5EE1D2]"
-          >
-            {theme === "dark" ? (
-              <svg className="w-4 h-4 text-[#FFB86B]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4 text-[#5EE1D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            )}
-          </button>
 
           {/* Command Palette Trigger */}
           <button
