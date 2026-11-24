@@ -179,5 +179,15 @@ async def seed(session_factory=None) -> None:
         print("    - Doctors seeded: 2, Availability slots: 28, Vitals: ~70 readings")
 
 
+async def _main() -> None:
+    """Create tables if needed (fresh local database), then seed."""
+    from app import models  # noqa: F401  (registers every model on Base.metadata)
+    from app.core.database import Base, engine
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    await seed()
+
+
 if __name__ == "__main__":
-    asyncio.run(seed())
+    asyncio.run(_main())

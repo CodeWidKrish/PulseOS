@@ -6,10 +6,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_current_user, get_db
-from app.models.appointment import Appointment, AppointmentStatus, AvailabilitySlot
+from app.core.deps import get_current_user, get_db, require_role
+from app.models.appointment import Appointment, AppointmentStatus, AvailabilitySlot, Doctor
 from app.models.user import User
-from app.schemas.appointment import AppointmentCreate, AppointmentResponse
+from app.schemas.appointment import (
+    AppointmentCreate,
+    AppointmentResponse,
+    DoctorScheduleItem,
+    SlotResponse,
+)
 from app.services.mailer import send_appointment_confirmation
 
 router = APIRouter()
@@ -95,6 +100,36 @@ async def list_appointments(
         .order_by(Appointment.created_at.desc())
     )
     return result.scalars().all()
+
+
+@router.get("/schedule", response_model=list[DoctorScheduleItem])
+async def doctor_schedule(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("doctor")),
+):
+    """Confirmed visits for the signed-in physician, soonest first."""
+    doctor = await db.scalar(select(Doctor).where(Doctor.user_id == current_user.id))
+    if doctor is None:
+        return []
+    result = await db.execute(
+        select(Appointment)
+        .join(AvailabilitySlot, Appointment.slot_id == AvailabilitySlot.id)
+        .options(selectinload(Appointment.slot), selectinload(Appointment.patient))
+        .where(
+            Appointment.doctor_id == doctor.id,
+            Appointment.status == AppointmentStatus.confirmed,
+        )
+        .order_by(AvailabilitySlot.starts_at)
+    )
+    return [
+        DoctorScheduleItem(
+            id=a.id,
+            status=a.status,
+            patient_name=a.patient.full_name,
+            slot=SlotResponse.model_validate(a.slot),
+        )
+        for a in result.scalars().all()
+    ]
 
 
 @router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)

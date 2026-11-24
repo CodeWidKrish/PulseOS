@@ -89,3 +89,39 @@ async def test_cancelled_slot_can_be_rebooked(client: AsyncClient, auth_headers:
     rebook = await client.post("/api/v1/appointments", json=payload, headers=auth_headers)
     assert rebook.status_code == 201, rebook.text
     assert rebook.json()["status"] == "confirmed"
+
+
+@pytest.mark.asyncio
+async def test_doctor_schedule_lists_booked_patients(client: AsyncClient, auth_headers: dict):
+    from app.core.security import hash_password
+    from app.models.user import User, UserRole
+
+    override_fn = app.dependency_overrides[get_db]
+    async for db in override_fn():
+        doc_user = User(email="doc@example.com", password_hash=hash_password("docpassword1"),
+                        full_name="Dr. Test", role=UserRole.doctor)
+        db.add(doc_user)
+        await db.flush()
+        doc = Doctor(user_id=doc_user.id, name="Dr. Test", specialty="General Practice")
+        db.add(doc)
+        await db.flush()
+        slot = AvailabilitySlot(doctor_id=doc.id, starts_at=datetime.now(UTC) + timedelta(days=1),
+                                ends_at=datetime.now(UTC) + timedelta(days=1, hours=1), is_booked=False)
+        db.add(slot)
+        await db.commit()
+        payload = {"doctor_id": str(doc.id), "slot_id": str(slot.id)}
+        break
+
+    booked = await client.post("/api/v1/appointments", json=payload, headers=auth_headers)
+    assert booked.status_code == 201
+
+    # Patients cannot read a physician schedule
+    assert (await client.get("/api/v1/appointments/schedule", headers=auth_headers)).status_code == 403
+
+    login = await client.post("/api/v1/auth/login", json={"email": "doc@example.com", "password": "docpassword1"})
+    doc_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    schedule = await client.get("/api/v1/appointments/schedule", headers=doc_headers)
+    assert schedule.status_code == 200
+    items = schedule.json()
+    assert len(items) == 1
+    assert items[0]["patient_name"] == "Test Patient"

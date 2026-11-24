@@ -13,7 +13,7 @@ from app.core.deps import get_current_user, get_db
 from app.models.report import Report, ReportExplanation, ReportStatus, ReportValue
 from app.models.user import User
 from app.schemas.report import ReportListItem, ReportResponse
-from app.services.ai_service import get_ai_service
+from app.services.ai_service import extract_questions, get_ai_service
 from app.services.report_parser import extract_text, parse_lab_values
 
 router = APIRouter()
@@ -150,7 +150,8 @@ async def explain_report(
         else:
             try:
                 chunks = []
-                async for token in get_ai_service().stream_explanation(lab_values):
+                ai = get_ai_service()
+                async for token in ai.stream_explanation(lab_values):
                     chunks.append(token)
                     yield f"data: {json.dumps({'token': token})}\n\n"
                 complete = "".join(chunks)
@@ -167,8 +168,9 @@ async def explain_report(
                     if existing is None:
                         session.add(ReportExplanation(
                             report_id=report_id, summary=complete[:500],
-                            details={"full_text": complete}, questions=[],
-                            model=settings.groq_model,
+                            details={"full_text": complete},
+                            questions=extract_questions(complete),
+                            model=ai.model_name,
                         ))
                     locked.status = ReportStatus.done
                     await session.commit()

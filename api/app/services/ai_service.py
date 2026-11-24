@@ -1,13 +1,16 @@
 """
 AI Service — Provider-swappable LLM abstraction.
-Current implementation: Groq (llama-3.3-70b-versatile)
-To swap: implement a new class conforming to AIService protocol, update get_ai_service().
+Providers: Groq (llama-3.3-70b-versatile) and an offline rule-based explainer.
+To swap: implement a class with `model_name` and `stream_explanation()`, update get_ai_service().
 """
+import re
 from collections.abc import AsyncGenerator
+from typing import Protocol
 
 from groq import AsyncGroq
 
 from app.core.config import settings
+from app.services.offline_explainer import OfflineExplainer
 from app.services.report_parser import LabValue
 
 # ── System Prompt ──────────────────────────────────────────────────────────────
@@ -45,10 +48,17 @@ def _build_user_prompt(values: list[LabValue]) -> str:
 
 # ── Groq Implementation ────────────────────────────────────────────────────────
 
+class AIService(Protocol):
+    model_name: str
+
+    def stream_explanation(self, values: list[LabValue]) -> AsyncGenerator[str, None]: ...
+
+
 class GroqAIService:
-    def __init__(self):
+    def __init__(self) -> None:
         self._client = AsyncGroq(api_key=settings.groq_api_key)
         self._model = settings.groq_model
+        self.model_name = settings.groq_model
 
     async def stream_explanation(
         self, values: list[LabValue]
@@ -85,8 +95,36 @@ class GroqAIService:
 
 # ── Factory ────────────────────────────────────────────────────────────────────
 
-def get_ai_service() -> GroqAIService:
-    """Return the configured AI service. Swap provider here."""
-    if settings.llm_provider == "groq":
+def get_ai_service() -> AIService:
+    """Return the configured AI service.
+
+    LLM_PROVIDER=groq uses Groq when GROQ_API_KEY is set and falls back to the offline
+    explainer otherwise, so the product still works end to end without a key.
+    LLM_PROVIDER=offline always uses the offline explainer.
+    """
+    provider = settings.llm_provider.lower()
+    if provider == "offline" or (provider == "groq" and not settings.groq_api_key):
+        return OfflineExplainer()
+    if provider == "groq":
         return GroqAIService()
     raise ValueError(f"Unknown LLM provider: {settings.llm_provider}")
+
+
+_QUESTION_HEADING = re.compile(r"questions?\s+(to\s+ask|for)\s+(your\s+)?doctor", re.IGNORECASE)
+_LIST_ITEM = re.compile(r"^\s*(?:\d+[.)]|[-*•])\s+")
+
+
+def extract_questions(text: str) -> list[str]:
+    """Pull the 'Questions to Ask Your Doctor' list out of an explanation."""
+    questions: list[str] = []
+    in_section = False
+    for line in text.replace("**", "").splitlines():
+        if _QUESTION_HEADING.search(line):
+            in_section = True
+            continue
+        if in_section:
+            if _LIST_ITEM.match(line):
+                questions.append(_LIST_ITEM.sub("", line).strip())
+            elif line.strip() and questions:
+                break
+    return questions[:5]

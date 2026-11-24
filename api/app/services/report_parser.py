@@ -74,35 +74,40 @@ def _ocr_image(file_path: str) -> str:
 #   "Hemoglobin: 14.2 g/dL (13.5-17.5)"
 #   "TSH 3.5 mIU/L [0.4-4.0] H"
 
+# One result per line. The test name may not contain ":" or digits-only words,
+# which keeps headers ("Patient: ...", "Collected: 2026-11-20") out of the results.
 _VALUE_PATTERN = re.compile(
-    r"(?P<test>[A-Za-z][\w\s\-()./]+?)"     # test name
-    r"\s*[:\s]\s*"
-    r"(?P<value>[\d.]+)"                     # numeric value
-    r"\s*(?P<unit>[a-zA-Z/%µμ]+[\w/]*)??"   # unit (optional)
+    r"^\s*(?P<test>[A-Za-z][A-Za-z0-9 ,()/%.\-]*?[A-Za-z0-9)])"  # test name
+    r"\s*:?\s+"
+    r"(?P<value>\d+(?:\.\d+)?)"                                  # numeric value
+    r"(?:\s*(?P<unit>[A-Za-zµμ%][\w/%µμ.^]*))?"                  # unit (optional)
     r"\s*[\[(]?\s*"
-    r"(?P<ref_low>[\d.]+)\s*[-–]\s*(?P<ref_high>[\d.]+)"  # ref range
-    r"\s*[\])]?",
-    re.MULTILINE,
+    r"(?P<ref_low>\d+(?:\.\d+)?)\s*[-–]\s*(?P<ref_high>\d+(?:\.\d+)?)"  # reference range
+    r"\s*[\])]?"
+    r"(?:\s+[HL])?\s*$"                                          # optional lab flag
 )
 
 
 def parse_lab_values(text: str) -> list[LabValue]:
-    """Parse extracted text into structured LabValue rows."""
+    """Parse extracted text into structured LabValue rows (one result per line)."""
     results: list[LabValue] = []
     seen: set[str] = set()
 
-    for match in _VALUE_PATTERN.finditer(text):
-        test_name = match.group("test").strip()
-        if test_name in seen or len(test_name) < 2:
+    for line in text.splitlines():
+        match = _VALUE_PATTERN.match(line)
+        if not match:
             continue
-        seen.add(test_name)
+        test_name = " ".join(match.group("test").split())
+        key = test_name.lower()
+        if key in seen or len(test_name) < 2:
+            continue
 
-        try:
-            value = float(match.group("value"))
-            ref_low = float(match.group("ref_low"))
-            ref_high = float(match.group("ref_high"))
-        except (TypeError, ValueError):
+        value = float(match.group("value"))
+        ref_low = float(match.group("ref_low"))
+        ref_high = float(match.group("ref_high"))
+        if ref_high <= ref_low:
             continue
+        seen.add(key)
 
         if value < ref_low:
             status = "low"

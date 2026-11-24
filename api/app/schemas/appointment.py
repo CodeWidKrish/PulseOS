@@ -39,3 +39,12 @@ class AppointmentResponse(BaseModel):
     slot: SlotResponse | None = None
 
     model_config = {"from_attributes": True}
+
+
+class DoctorScheduleItem(BaseModel):
+    """One upcoming visit on a physician's schedule."""
+
+    id: UUID
+    status: str
+    patient_name: str
+    slot: SlotResponse

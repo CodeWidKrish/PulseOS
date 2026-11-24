@@ -11,6 +11,7 @@ async def test_explanation_retry_and_replay(client: AsyncClient, auth_headers, m
 
     class FakeAI:
         calls = 0
+        model_name = "fake-model"
 
         async def stream_explanation(self, values):
             self.calls += 1
