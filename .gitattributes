@@ -1,0 +1,5 @@
+# Binary assets must never have their line endings converted
+*.pdf binary
+*.png binary
+*.jpg binary
+*.wav binary
