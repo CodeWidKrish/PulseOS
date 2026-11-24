@@ -483,27 +483,6 @@ html.light:not(.marketing) .tile {
   box-shadow: 0 1px 2px rgba(11, 15, 21, 0.04), 0 8px 24px -12px rgba(11, 15, 21, 0.10);
 }
 
-/* Slow ambient aurora behind app page headers */
-.app-aurora {
-  position: absolute;
-  inset: -20% -10% auto -10%;
-  height: 520px;
-  pointer-events: none;
-  background:
-    radial-gradient(40% 60% at 20% 30%, rgba(255, 77, 94, 0.10), transparent 70%),
-    radial-gradient(35% 55% at 75% 20%, rgba(94, 225, 210, 0.08), transparent 70%);
-  filter: blur(20px);
-  animation: auroraDrift 24s ease-in-out infinite alternate;
-}
-html.light:not(.marketing) .app-aurora {
-  opacity: 0.6;
-}
-
-@keyframes auroraDrift {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(3%, 2%, 0) scale(1.06); }
-}
-
 /* Skeleton shimmer */
 .shimmer {
   position: relative;
@@ -533,20 +512,6 @@ html.light:not(.marketing) .shimmer::after {
 .ecg-trace {
   stroke-dasharray: 120 120;
   animation: ecgTrace 1.6s linear infinite;
-}
-
-/* Soft "live" beacon — slow, calm ring (not a flashing alert) */
-@keyframes beacon {
-  0% { transform: scale(1); opacity: 0.55; }
-  100% { transform: scale(2.6); opacity: 0; }
-}
-.beacon::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: currentColor;
-  animation: beacon 2.4s var(--ease-out-soft) infinite;
 }
 
 /* Streaming caret */

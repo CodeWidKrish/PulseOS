@@ -208,12 +208,12 @@ export const MARKETING_CONTENT = {
       {
         title: "Private by design",
         description:
-          "Reports are encrypted in transit and at rest, and only you can open them.",
+          "Passwords are hashed with Argon2, sessions use short-lived tokens, and only you can open your reports.",
       },
       {
         title: "You stay in control",
         description:
-          "Export or delete everything, anytime, from one settings page.",
+          "PulseOS runs on sample data and never writes the contents of your reports to its logs.",
       },
       {
         title: "Clear about limits",

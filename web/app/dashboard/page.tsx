@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app/app-shell";
+import { DoctorSchedule } from "@/components/app/doctor-schedule";
 import { HealthRing } from "@/components/app/health-ring";
 import { TrendChart } from "@/components/app/trend-chart";
 import { Chip } from "@/components/ui/chip";
@@ -53,9 +54,14 @@ function greetingFor(hour: number): string {
 export default function DashboardPage() {
   return (
     <AppShell>
-      <DashboardContent />
+      <RoleDashboard />
     </AppShell>
   );
+}
+
+function RoleDashboard() {
+  const user = useSessionUser();
+  return user.role === "doctor" ? <DoctorSchedule user={user} /> : <DashboardContent />;
 }
 
 function DashboardContent() {

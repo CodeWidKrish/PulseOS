@@ -86,13 +86,14 @@ Patients receive diagnostic laboratory reports full of impenetrable clinical jar
 
 | Layer | Technologies | Key Architectural Purpose |
 | :--- | :--- | :--- |
-| **Frontend Web** | Next.js 15 (App Router), TypeScript, Tailwind CSS | High-performance responsive SPA, server-rendered landing, client state |
-| **3D & Motion** | Three.js / R3F, Custom GLSL Shaders, GSAP, Lenis | 8,000-particle interactive heart, cursor repulsion physics, 60fps scroll |
-| **Backend API** | FastAPI (Python 3.11+), Pydantic v2, SQLAlchemy 2 | Asynchronous REST endpoints, strict schema validation, SSE generator |
-| **Database** | PostgreSQL 16 + asyncpg + Alembic | ACID relational engine, `SELECT FOR UPDATE` row locks, temporal queries |
-| **AI Inference** | Groq Cloud LPU (`llama-3.3-70b-versatile`) | Ultra-fast token generation streamed over Server-Sent Events (SSE) |
-| **Document OCR** | `pdfplumber` + `pytesseract` | Multi-engine PDF vector text and scanned raster optical extraction |
-| **Security & Auth** | Argon2id, JWT (Access 15m + Refresh 7d HttpOnly) | Stateless auth with cookie rotation, magic-byte upload sniffers, RBAC |
+| **Frontend Web** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 | Marketing site plus authenticated patient and physician workspaces |
+| **Motion & Graphics** | OGL (WebGL2 shader), GSAP ScrollTrigger, Lenis, Framer Motion, Recharts | Interactive electric heart, scroll story, calm UI motion, trend charts |
+| **Audio** | Web Audio API | Heartbeat synthesized in the browser (split S1/S2 valve sounds), no audio files |
+| **Backend API** | FastAPI (Python 3.11+), Pydantic v2, SQLAlchemy 2 (async) | REST endpoints, schema validation, Server-Sent Events streaming |
+| **Database** | PostgreSQL (Docker) or SQLite (local demo) | Relational data, `SELECT … FOR UPDATE` booking locks, partial unique index |
+| **AI Explainer** | Groq (`llama-3.3-70b-versatile`) or built-in offline rule-based explainer | Plain-language explanation streamed over SSE; offline mode needs no API key |
+| **Document Parsing** | `pdfplumber` (+ optional Tesseract OCR for images and scans) | Extracts lab values with their reference ranges |
+| **Security & Auth** | Argon2 password hashing, JWT (15-min access + 7-day refresh), role checks | Patients only ever see their own data; physician-only endpoints |
 
 ---
 
@@ -100,46 +101,41 @@ Patients receive diagnostic laboratory reports full of impenetrable clinical jar
 
 ```mermaid
 flowchart TD
-    subgraph Client ["Client Layer (Next.js 15)"]
-        Browser["Desktop & Mobile Browsers"]
-        ThreeCanvas["Three.js 8,000-Point Particle Heart"]
-        SSEConsumer["SSE Stream Consumer (ReadableStream)"]
+    subgraph Client ["Client (Next.js 16)"]
+        Browser["Desktop & mobile browsers"]
+        Heart["Electric heart (OGL / WebGL2) + Web Audio heartbeat"]
+        SSEConsumer["SSE stream reader (fetch + ReadableStream)"]
     end
 
-    subgraph Gateway ["Reverse Proxy & Ingestion"]
-        API["FastAPI 0.115 Gateway (/api/v1)"]
-        AuthMiddleware["JWT & RBAC Security Layer"]
-        RateLimiter["Token-Bucket Rate Limiter"]
+    subgraph API ["FastAPI (/api/v1)"]
+        Auth["JWT auth + role checks"]
+        Reports["Reports: upload, parse, explain"]
+        Booking["Appointments: lock + book"]
     end
 
-    subgraph Engine ["Processing & AI Pipeline"]
-        PDFParser["pdfplumber Vector Extraction"]
-        OCRFallback["Tesseract OCR Fallback Engine"]
-        CriticalRules["Deterministic Danger Thresholds"]
-        GroqService["Groq LPU / Llama 3.3 Engine"]
+    subgraph Engine ["Processing"]
+        PDFParser["pdfplumber text extraction"]
+        OCR["Tesseract OCR (optional, images and scans)"]
+        Explainer["Explainer: Groq Llama 3.3, or offline rules without a key"]
     end
 
-    subgraph Persistence ["Data Layer"]
-        PG[(PostgreSQL 16 Relational Engine)]
-        Filesystem[("Content-Addressed Storage /uploads")]
+    subgraph Persistence ["Data"]
+        DB[(PostgreSQL or SQLite)]
+        Files[("Local file storage /uploads")]
     end
 
-    Browser -->|HTTPS / REST| API
-    Browser -->|Interactive Mouse/Touch| ThreeCanvas
-    API --> AuthMiddleware --> RateLimiter
-
-    RateLimiter -->|Document Upload| PDFParser
-    PDFParser -.->|Low Text Density| OCRFallback
-    PDFParser -->|Save File| Filesystem
-    PDFParser -->|Biomarker Rows| PG
-
-    RateLimiter -->|GET /reports/:id/explain| CriticalRules
-    CriticalRules -->|Anonymized Biomarkers| GroqService
-    GroqService -->|SSE Token Chunks| SSEConsumer
-    SSEConsumer -->|Realtime Render| Browser
-
-    RateLimiter -->|POST /appointments| PG
-    note1["Atomic Row Lock:<br/>SELECT ... FOR UPDATE<br/>+ UNIQUE(slot_id)"] -.-> PG
+    Browser -->|HTTPS / REST| Auth
+    Browser --> Heart
+    Auth --> Reports
+    Auth --> Booking
+    Reports --> PDFParser
+    PDFParser -.->|no text layer| OCR
+    Reports --> Files
+    PDFParser -->|lab values + ranges| DB
+    Reports -->|GET /reports/:id/explain| Explainer
+    Explainer -->|SSE token chunks| SSEConsumer
+    Booking -->|SELECT … FOR UPDATE| DB
+    note1["Partial unique index:<br/>one confirmed booking per slot"] -.-> DB
 ```
 
 ---
@@ -148,73 +144,61 @@ flowchart TD
 
 | Feature | Engineering Highlights | UX & Safety Guarantees |
 | :--- | :--- | :--- |
-| **🫀 3D Particle Heart Hero** | Custom GLSL vertex & fragment shaders controlling ~8,000 points. Real-time cursor repulsion using smoothstep distance vectors. | Steady 60 FPS, caps DPR at 2.0. Graceful SVG radial gradient fallback when WebGL is unsupported. |
-| **📜 Pinned Story Narrative** | GSAP ScrollTrigger timeline pinned across 300vh. The 3D heart travels, rotates 360°, and shifts across Pulse, Teal, and Amber states. | Lenis smooth scrolling. Fully adheres to `prefers-reduced-motion: reduce`. |
-| **🧪 Streaming AI Explainer** | Document ingestion via `pdfplumber` with automatic fallback to `pytesseract`. Structured tokens streamed over Server-Sent Events. | 8th-grade readability tier. Deterministic pre-flight check flags critical thresholds before LLM is invoked. |
-| **📊 Longitudinal Vitals** | Time-series Recharts with 7-day and 30-day horizon toggles. Composite **Health Score (0–100)** computed with documented rules. | Monospaced tabular numerals, trend direction indicators, and physiological sanity validations. |
-| **📅 Conflict-Safe Appointments** | Doctor directory and weekly calendar slots. Guarantees zero double-booking via database row locks and unique constraints. | Instant optimistic toast confirmation, slot status updates, and automated confirmation dispatch. |
-| **🛡️ Zero-Compromise Security** | Passwords hashed with Argon2id. Short-lived 15m access tokens + rotating 7-day HttpOnly refresh cookies. Magic-byte file validation. | Complete ownership isolation: users can only view their own diagnostic records. Never logs health data. |
+| **🫀 Electric Heart Hero** | WebGL2 shader heart (OGL) with cursor interaction and a synthesized lub-dub heartbeat that starts on the visitor's first interaction. | Visible mute toggle (remembered). Honours `prefers-reduced-motion`. |
+| **📜 Pinned Story Narrative** | GSAP ScrollTrigger story with Lenis smooth scrolling. | Falls back to stacked panels under reduced motion. |
+| **🧪 Streaming Report Explainer** | PDF text extraction, line-by-line lab-value parsing, explanation streamed over Server-Sent Events; questions for the doctor saved with the report. | Never diagnoses or suggests medication. Urgent-care notice only for markedly abnormal values. Works offline with a rule-based explainer. |
+| **📊 Vitals & Health Score** | Recharts trends with the normal range shaded, 7/30-day views, rule-based Health Score (0–100). | Tabular numerals, trend badges, input validation. |
+| **📅 Conflict-Safe Appointments** | Row lock plus a partial unique index stops double booking; cancelled slots can be rebooked. Calendar (.ics) export. | Physicians see their own schedule in a dedicated view. |
+| **🖨️ Doctor Visit Sheet** | Print-ready sheet of out-of-range values and questions from any explained report. | One click from the report page. |
 
 ---
 
 ## 🔒 Security & Privacy Model
 
-PulseOS was engineered from Day 1 under a strict healthtech threat model:
+Implemented today:
 
-- **Strict Anonymization**: No patient names, MRNs, dates of birth, or email addresses are ever transmitted to the LLM. Only structured numeric biomarker pairs (`test_name`, `value`, `unit`, `ref_range`) enter the model context.
-- **Deterministic Danger Alerting**: Severe physiological values (e.g., Potassium > 6.2 mmol/L, Platelets < 20,000 /mcL) trigger a hardcoded emergency clinical escalation banner *before* AI inference.
-- **Prompt Injection Defense**: Raw text strings extracted from PDFs are decoupled from instruction prompts; input is validated strictly against structured JSON schemas.
-- **Double-Booking Immunity**: Appointment reservations execute within an atomic transaction:
+- **Minimal data to the model**: only test name, value, unit and reference range are sent to the LLM, never names or emails.
+- **Ownership isolation**: every report, vital and appointment query is scoped to the signed-in user; physician endpoints require the doctor role.
+- **Passwords and sessions**: Argon2 hashing; short-lived access tokens with refresh.
+- **No real health data**: synthetic samples only, and report contents are never written to logs.
+- **Double-booking immunity**: bookings run in a transaction with a row lock, backed by a partial unique index (one confirmed appointment per slot):
   ```sql
-  SELECT * FROM availability_slots 
-  WHERE id = :slot_id AND is_booked = FALSE 
-  FOR UPDATE;
+  SELECT * FROM availability_slots WHERE id = :slot_id FOR UPDATE;
   ```
+
+Planned (see [`docs/NEXT_PHASE.md`](docs/NEXT_PHASE.md)): rate limiting on auth and uploads, file-type sniffing on upload, refusing the default secret key in production, and httpOnly cookie sessions.
 
 ---
 
 ## 🚀 Quick Start
 
-Get the entire stack (Next.js web app, FastAPI API, and PostgreSQL database) running locally in **5 commands**:
+### One-command local demo (Windows)
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/CodeWidKrish/PulseOS.git
-cd PulseOS
-
-# 2. Configure environment variables
-cp .env.example .env
-
-# 3. Spin up services in Docker Compose
-docker compose up --build -d
-
-# 4. Apply database migrations
-docker compose exec api alembic upgrade head
-
-# 5. Open in your browser
-# Web App  -> http://localhost:3000
-# API Docs -> http://localhost:8000/docs
+```powershell
+# from the repo root, after installing Python 3.11+ and Node 20+
+pip install -r api/requirements.txt
+cd web; npm install; cd ..
+copy .env.example api\.env     # then set DATABASE_URL=sqlite+aiosqlite:///./pulseos-demo.db
+powershell -ExecutionPolicy Bypass -File scripts/start-demo.ps1
 ```
+
+The script seeds synthetic data, starts the API on `:8100` and the website on `:3000`, and opens Chrome.
+Sign in with **Patient demo** or **Physician demo**, then open **Lab reports → Try a sample report**.
 
 <details>
-<summary><b>🔧 Manual Local Development (Without Docker)</b></summary>
+<summary><b>🔧 Manual setup</b></summary>
 
-### Backend Setup (FastAPI)
 ```bash
+# API
 cd api
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --reload --port 8000
-```
+python -m app.core.seed                      # creates tables + synthetic demo data
+uvicorn app.main:app --port 8100             # docs at http://localhost:8100/api/docs
 
-### Frontend Setup (Next.js)
-```bash
+# Web (new terminal)
 cd web
 npm install
-npm run dev
-# Running on http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:8100 npm run dev
 ```
 
 </details>
@@ -223,30 +207,31 @@ npm run dev
 
 ## ⚙️ Environment Configuration
 
-| Variable | Description | Required Service | Secret? |
+| Variable | Description | Service | Secret? |
 | :--- | :--- | :--- | :---: |
-| `NEXT_PUBLIC_API_URL` | Base endpoint URL for the FastAPI backend | `web` | No |
-| `DATABASE_URL` | Async PostgreSQL connection URI (`postgresql+asyncpg://...`) | `api` | **Yes** |
-| `JWT_SECRET_KEY` | 256-bit cryptographic key for Access Tokens | `api` | **Yes** |
-| `REFRESH_SECRET_KEY` | 256-bit cryptographic key for Refresh Tokens | `api` | **Yes** |
-| `GROQ_API_KEY` | Groq Cloud API key for ultra-fast LPU inference | `api` | **Yes** |
-| `CORS_ORIGINS` | Permitted web origins (`https://pulseos.health,http://localhost:3000`) | `api` | No |
-| `UPLOAD_DIR` | Mount path for uploaded report files | `api` | No |
+| `DATABASE_URL` | `postgresql+asyncpg://…` or `sqlite+aiosqlite:///./pulseos-demo.db` | `api` | **Yes** |
+| `SECRET_KEY` | Signs access and refresh tokens (`openssl rand -hex 32`) | `api` | **Yes** |
+| `LLM_PROVIDER` | `groq` (falls back to offline without a key) or `offline` | `api` | No |
+| `GROQ_API_KEY` | Optional Groq key for Llama 3.3 explanations | `api` | **Yes** |
+| `CORS_ORIGINS` | Allowed web origins, JSON array or comma list | `api` | No |
+| `UPLOAD_DIR` | Where uploaded reports are stored | `api` | No |
+| `NEXT_PUBLIC_API_URL` | API base URL baked into the web build | `web` | No |
 
 ---
 
 ## 🗺️ Project Roadmap
 
-- [x] **Monorepo Architecture & Specifications** (11 comprehensive pre-implementation docs)
-- [x] **Canonical Design System** ([`DESIGN.md`](DESIGN.md) featuring Apple-inspired aesthetics)
-- [x] **Relational Schema & Migrations** (Users, Reports, Biomarkers, Vitals, Doctors, Appointments)
-- [x] **Interactive 3D Particle Prototype** ([`reference/pulseos-final.html`](reference/pulseos-final.html))
-- [ ] **Milestone 1**: 3D Particle Canvas & Pinned Scroll Narrative Port into Next.js
-- [ ] **Milestone 2**: Server-Sent Events (SSE) AI Streaming Explainer Integration
-- [ ] **Milestone 3**: Longitudinal Vitals Charts & Deterministic Health Scoring
-- [ ] **Milestone 4**: Conflict-Safe Doctor Directory & Appointment Booking
-- [ ] **Milestone 5**: Playwright End-to-End Test Suite & Lighthouse 90+ Verification
-- [ ] **Milestone 6**: Production Deployment (Vercel + Render/Railway)
+- [x] **Specifications & design system** ([`DESIGN.md`](DESIGN.md), `docs/`)
+- [x] **Marketing site**: electric heart hero, scroll story, interactive demo, synthesized heartbeat
+- [x] **Auth & roles**: register, login, refresh, patient and physician views
+- [x] **Report explainer**: PDF parsing, SSE streaming, offline and Groq providers, saved doctor questions
+- [x] **Vitals**: logging, trend charts, rule-based health score
+- [x] **Appointments**: conflict-safe booking, cancel and rebook, physician schedule, .ics export
+- [x] **CI**: lint, type-check, tests and build on every push
+- [ ] **Alembic migrations** (tables are currently created on startup)
+- [ ] **Hardening**: rate limits, upload sniffing, production secret check
+- [ ] **Playwright end-to-end suite & Lighthouse budgets**
+- [ ] **Production deployment** (Vercel + Render/Railway)
 
 ---
 

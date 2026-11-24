@@ -117,6 +117,13 @@ export interface Appointment {
   slot: Slot | null;
 }
 
+export interface DoctorScheduleItem {
+  id: string;
+  status: "confirmed" | "cancelled";
+  patient_name: string;
+  slot: Slot;
+}
+
 // ── Token storage ──────────────────────────────────────────────────────────
 
 function readStorage(key: string): string | null {
@@ -300,6 +307,8 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ doctor_id: doctorId, slot_id: slotId }),
       }),
+    /** Physician only: confirmed visits on the signed-in doctor's schedule. */
+    schedule: (): Promise<DoctorScheduleItem[]> => request<DoctorScheduleItem[]>("/appointments/schedule"),
     cancel: (id: string): Promise<void> =>
       request<void>(`/appointments/${encodeURIComponent(id)}`, { method: "DELETE" }),
   },

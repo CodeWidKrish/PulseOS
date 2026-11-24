@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "@/components/app/app-shell";
 import { EcgLine } from "@/components/app/ecg-line";
@@ -28,7 +29,10 @@ const STATUS_CHIP: Record<ReportListItem["status"], "normal" | "caution" | "aler
 
 const errorMessage = (err: unknown, fallback: string): string => (err instanceof Error ? err.message : fallback);
 
+const SAMPLE_REPORT = { url: "/samples/sample-metabolic-panel.pdf", name: "Sample metabolic panel.pdf" };
+
 export default function ReportsPage() {
+  const router = useRouter();
   const [reports, setReports] = useState<ReportListItem[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [uploadingName, setUploadingName] = useState<string | null>(null);
@@ -89,6 +93,23 @@ export default function ReportsPage() {
     }
   };
 
+  /** One-click demo: upload the synthetic sample PDF, open it and start the explanation. */
+  const trySample = async () => {
+    if (uploadingName) return;
+    setUploadingName(SAMPLE_REPORT.name);
+    try {
+      const blob = await fetch(SAMPLE_REPORT.url).then((r) => {
+        if (!r.ok) throw new Error("The sample report could not be loaded.");
+        return r.blob();
+      });
+      const created = await api.reports.upload(new File([blob], SAMPLE_REPORT.name, { type: "application/pdf" }));
+      router.push(`/reports/${created.id}?explain=1`);
+    } catch (err) {
+      toast.error(errorMessage(err, "Could not upload the sample report."));
+      setUploadingName(null);
+    }
+  };
+
   const openPicker = () => {
     if (!uploadingName) fileInputRef.current?.click();
   };
@@ -106,6 +127,11 @@ export default function ReportsPage() {
         eyebrow="Lab reports"
         title="Your reports, in plain language"
         description="Upload a lab report and PulseOS lays out every value against its normal range, then explains what stands out."
+        action={
+          <button type="button" onClick={() => void trySample()} disabled={Boolean(uploadingName)} className="btn-secondary">
+            <Icon name="sparkles" size={16} /> Try a sample report
+          </button>
+        }
       />
 
       <input
@@ -179,6 +205,14 @@ export default function ReportsPage() {
                 {isDragging ? "Drop to upload" : "Drop a lab report here, or click to browse"}
               </p>
               <p className="text-sm text-fg-muted">PDF, JPG, PNG or TIFF · up to 10 MB · sample or synthetic reports only</p>
+              <a
+                href={SAMPLE_REPORT.url}
+                download
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm font-medium text-teal hover:underline"
+              >
+                Download a sample report
+              </a>
             </motion.div>
           )}
         </AnimatePresence>

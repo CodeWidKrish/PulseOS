@@ -48,6 +48,7 @@ env/
 # ========================
 uploads/
 *.pdf
+!web/public/samples/*.pdf
 *.jpg
 *.jpeg
 *.png

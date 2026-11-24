@@ -90,8 +90,33 @@ export default function ReportDetailPage() {
     }
   };
 
+  // Opened from "Try a sample report": start explaining once the report has loaded
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!report || autoStarted.current || report.explanation) return;
+    if (new URLSearchParams(window.location.search).get("explain") !== "1") return;
+    const timer = window.setTimeout(() => {
+      if (autoStarted.current) return;
+      autoStarted.current = true;
+      window.history.replaceState(null, "", window.location.pathname);
+      void handleExplain();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  });
+
   const savedText = report?.explanation?.details.full_text ?? report?.explanation?.summary ?? "";
-  const explanation = parseExplanation(streamedText || savedText);
+  const parsed = parseExplanation(streamedText || savedText);
+  // Prefer the questions the API saved; fall back to parsing the text
+  const savedQuestions = !streamedText ? (report?.explanation?.questions ?? []) : [];
+  const explanation = { ...parsed, questions: savedQuestions.length ? savedQuestions : parsed.questions };
+  const modelName = report?.explanation?.model;
+  const explainerLabel = modelName
+    ? modelName.startsWith("pulseos-offline")
+      ? "PulseOS offline explainer (rule-based)"
+      : modelName === "synthetic"
+        ? "Sample explanation"
+        : `${modelName} via Groq`
+    : null;
   const hasExplanation = Boolean(report?.explanation) || (!isStreaming && streamedText.length > 0);
   const values = report?.values ?? [];
   const flagged = values.filter((v) => v.status !== "normal");
@@ -342,6 +367,7 @@ export default function ReportDetailPage() {
               )}
 
               <div className="border-t border-line bg-hover px-6 py-4">
+                {explainerLabel && <p className="mb-1 font-mono text-xs text-fg-muted">Explained by {explainerLabel}</p>}
                 <p className="text-xs text-fg-muted">PulseOS explains information and does not provide medical advice.</p>
                 <Link href="/appointments" className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-teal hover:underline">
                   Book a doctor to talk it through <Icon name="arrowRight" size={14} />

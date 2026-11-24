@@ -12,14 +12,13 @@ interface CommandPaletteProps {
 const DEFAULT_COMMANDS = [
   { title: "Dashboard Overview", category: "Navigation", href: "/dashboard", badge: "App" },
   { title: "Lab Reports Hub", category: "Navigation", href: "/reports", badge: "App" },
-  { title: "Report Detail (CMP)", category: "Navigation", href: "/reports/rep-1", badge: "App" },
   { title: "Vitals Tracker", category: "Navigation", href: "/vitals", badge: "App" },
   { title: "Book Doctor Appointment", category: "Navigation", href: "/appointments", badge: "App" },
   { title: "Patient Login", category: "Auth", href: "/login", badge: "Auth" },
   { title: "Create Account", category: "Auth", href: "/register", badge: "Auth" },
   { title: "Interactive Lab Demo", category: "Marketing", href: "/#demo", badge: "Site" },
-  { title: "Before & After Jargon Slider", category: "Marketing", href: "/#before-after", badge: "Site" },
-  { title: "Clinical Security & HIPAA", category: "Marketing", href: "/#security", badge: "Site" },
+  { title: "Before & After Jargon Slider", category: "Marketing", href: "/#app", badge: "Site" },
+  { title: "Security & Privacy", category: "Marketing", href: "/#security", badge: "Site" },
   { title: "Frequently Asked Questions", category: "Marketing", href: "/#faq", badge: "Site" },
 ];
 

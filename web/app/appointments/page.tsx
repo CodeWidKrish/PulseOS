@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "@/components/app/app-shell";
-import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Icon } from "@/components/ui/icon";
 import { Stagger, StaggerItem } from "@/components/ui/motion";
@@ -390,12 +389,7 @@ export default function AppointmentsPage() {
               )}
             </AnimatePresence>
           </div>
-          <p className="mt-4 flex items-center gap-2 text-xs text-fg-muted">
-            <Chip variant="neutral" size="sm" dot={false}>
-              Demo
-            </Chip>
-            Synthetic physicians and times for demonstration only.
-          </p>
+          <p className="mt-4 text-xs text-fg-muted">Physicians and times are synthetic, for demonstration only.</p>
         </section>
       </div>
     </AppShell>

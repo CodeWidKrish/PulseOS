@@ -23,6 +23,10 @@ const NAV_ITEMS: { label: string; href: string; icon: IconName }[] = [
   { label: "Appointments", href: "/appointments", icon: "calendar" },
 ];
 
+const DOCTOR_NAV: { label: string; href: string; icon: IconName }[] = [
+  { label: "Schedule", href: "/dashboard", icon: "calendar" },
+];
+
 const NARROW_QUERY = "(max-width: 1199px)";
 
 function subscribeNarrow(onChange: () => void): () => void {
@@ -47,6 +51,7 @@ export function AppShell(props: AppShellProps) {
 
 function AppShellFrame({ children, title }: AppShellProps) {
   const user = useSessionUser();
+  const navItems = user.role === "doctor" ? DOCTOR_NAV : NAV_ITEMS;
   const pathname = usePathname();
   const router = useRouter();
   const reduce = useReducedMotion();
@@ -75,7 +80,7 @@ function AppShellFrame({ children, title }: AppShellProps) {
     router.push("/");
   };
 
-  const sectionTitle = title ?? NAV_ITEMS.find((n) => isActive(pathname, n.href))?.label ?? "Overview";
+  const sectionTitle = title ?? navItems.find((n) => isActive(pathname, n.href))?.label ?? "Overview";
 
   return (
     <div className="relative flex min-h-screen bg-canvas text-fg">
@@ -88,7 +93,7 @@ function AppShellFrame({ children, title }: AppShellProps) {
         <div>
           <div className={`flex h-16 items-center ${collapsed ? "justify-center" : "justify-between px-5"}`}>
             <Link href="/dashboard" className="flex items-center gap-2.5" aria-label="PulseOS overview">
-              <span className="beacon relative h-2.5 w-2.5 rounded-full bg-pulse text-pulse" aria-hidden="true" />
+              <span className="h-2.5 w-2.5 rounded-full bg-pulse" aria-hidden="true" />
               {!collapsed && (
                 <span className="text-[15px] font-semibold tracking-tight">
                   Pulse<span className="text-fg-muted">OS</span>
@@ -108,7 +113,7 @@ function AppShellFrame({ children, title }: AppShellProps) {
           </div>
 
           <nav className="mt-4 space-y-1 px-3" aria-label="App">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const active = isActive(pathname, item.href);
               return (
                 <Link
@@ -178,12 +183,11 @@ function AppShellFrame({ children, title }: AppShellProps) {
 
       {/* ── Main column ───────────────────────────────────────── */}
       <div className="relative flex min-w-0 flex-1 flex-col">
-        <div className="app-aurora no-print" aria-hidden="true" />
 
         <header className="glass-nav no-print sticky top-0 z-20 flex h-16 items-center justify-between gap-4 px-4 sm:px-8">
           <div className="flex min-w-0 items-center gap-2 text-sm">
             <Link href="/dashboard" className="flex items-center gap-2 md:hidden" aria-label="PulseOS overview">
-              <span className="beacon relative h-2.5 w-2.5 rounded-full bg-pulse text-pulse" aria-hidden="true" />
+              <span className="h-2.5 w-2.5 rounded-full bg-pulse" aria-hidden="true" />
             </Link>
             <span className="hidden text-fg-muted sm:inline">PulseOS</span>
             <span className="hidden text-fg-muted/50 sm:inline" aria-hidden="true">
@@ -238,7 +242,7 @@ function AppShellFrame({ children, title }: AppShellProps) {
         className="no-print fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-[22px] border border-line bg-surface/85 p-1.5 shadow-elevation-high backdrop-blur-xl md:hidden"
         aria-label="App"
       >
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link

@@ -11,22 +11,13 @@ interface AuthLayoutProps {
   footer: React.ReactNode;
 }
 
-/** Centered 420px auth card over the obsidian canvas with a slow pulse glow (DESIGN §8.6). */
+/** Centered 420px auth card over the obsidian canvas (DESIGN §8.6). */
 export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
   const reduce = useReducedMotion();
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-canvas px-4 py-12 text-fg">
-      <div className="app-aurora" aria-hidden="true" />
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(255,77,94,0.16) 0%, rgba(255,77,94,0.04) 45%, transparent 70%)" }}
-        animate={reduce ? undefined : { scale: [1, 1.06, 1, 1.03, 1], opacity: [0.8, 1, 0.8, 0.9, 0.8] }}
-        transition={{ duration: 60 / 60, repeat: Infinity, repeatDelay: 1.2, ease: "easeInOut" }}
-      />
-
       <Link href="/" className="relative mb-10 flex items-center gap-2.5" aria-label="PulseOS home">
-        <span className="beacon relative h-2.5 w-2.5 rounded-full bg-pulse text-pulse" aria-hidden="true" />
+        <span className="h-2.5 w-2.5 rounded-full bg-pulse" aria-hidden="true" />
         <span className="text-lg font-semibold tracking-tight">
           Pulse<span className="text-fg-muted">OS</span>
         </span>

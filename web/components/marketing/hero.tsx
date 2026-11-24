@@ -98,9 +98,8 @@ export function Hero() {
         <DynamicMaskedHeading
           text="Your health, in plain language."
           tag="h1"
-          mediaType="video"
-          src="/media/blood-flow.mp4"
-          poster="/media/blood-flow-poster.jpg"
+          mediaType="image"
+          src="/media/blood-flow-poster.jpg"
           reveal="rise"
           trigger="mount"
           duration={1.2}
